@@ -1,10 +1,14 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { skipCSRFCheck } from "@auth/core";
 import { supabaseAdmin } from "@/lib/supabase";
+import bcrypt from "bcryptjs";
 
 type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  skipCSRFCheck: skipCSRFCheck, 
+
   providers: [
     Credentials({
       credentials: {
@@ -22,17 +26,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (error || !user) return null;
 
-        // Usuário inativo não pode logar
         if (!user.status) return null;
 
-        // ⚠️ Comparação de senha em texto puro — substituir por bcrypt futuramente
-        if (credentials.password !== user.password) return null;
+           const match = await bcrypt.compare(
+             credentials.password as string,
+             user.password
+           );
+           if (!match) return null;
 
         return {
           id: String(user.id),
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.role as UserRole,
         };
       },
     }),
@@ -55,7 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 8, // 8 horas
+    maxAge: 60 * 60 * 8,
   },
 
   pages: {
