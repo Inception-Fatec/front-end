@@ -1,12 +1,12 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-type UserRole = "administrador" | "operador" | "usuario";
+type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
 const routePermissions: Record<string, UserRole[]> = {
-  "/admin":     ["administrador"],
-  "/operacoes": ["administrador", "operador"],
-  "/dashboard": ["administrador", "operador", "usuario"],
+  "/admin":     ["ADMIN"],
+  "/operacoes": ["ADMIN", "OPERATOR"],
+  "/dashboard": ["ADMIN", "OPERATOR", "USER"],
 };
 
 export default auth((req) => {
