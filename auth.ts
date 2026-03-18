@@ -2,15 +2,11 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { skipCSRFCheck } from "@auth/core";
 import { supabaseAdmin } from "@/lib/supabase";
-
-// TODO: importar bcrypt quando todas as senhas do banco estiverem em hash
-// import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs";
 
 type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  // Permite testar via Thunder Client / Postman sem precisar do token CSRF
-  // Em produção pode ser removido ou condicionado ao NODE_ENV
   skipCSRFCheck: skipCSRFCheck, 
 
   providers: [
@@ -30,17 +26,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (error || !user) return null;
 
-        // Usuário inativo não pode logar
         if (!user.status) return null;
 
-        // ⚠️ TODO: quando as senhas forem migradas para bcrypt, substituir por:
-        //
-        //   const match = await bcrypt.compare(
-        //     credentials.password as string,
-        //     user.password
-        //   );
-        //   if (!match) return null;
-        if (credentials.password !== user.password) return null;
+           const match = await bcrypt.compare(
+             credentials.password as string,
+             user.password
+           );
+           if (!match) return null;
 
         return {
           id: String(user.id),
@@ -69,7 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 8, // 8 horas
+    maxAge: 60 * 60 * 8,
   },
 
   pages: {

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
- 
-// POST /api/auth/register
-// Público — qualquer pessoa pode se registrar, role fixo como USER
-//mudar dps que ver oque a equipe decide
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

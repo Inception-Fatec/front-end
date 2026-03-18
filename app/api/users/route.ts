@@ -5,8 +5,6 @@ import { supabaseAdmin } from "@/lib/supabase";
  
 type UserRole = "ADMIN" | "OPERATOR" | "USER";
  
-// GET /api/users
-// Somente ADMIN — retorna lista de todos os usuários
 export async function GET() {
   const session = await auth();
  
@@ -33,8 +31,6 @@ export async function GET() {
   return NextResponse.json(users, { status: 200 });
 }
  
-// POST /api/users
-// Somente ADMIN — cria usuário com qualquer role
 export async function POST(req: NextRequest) {
   const session = await auth();
  

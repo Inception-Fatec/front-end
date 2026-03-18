@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// POST /api/auth/login
-// O NextAuth /api/auth/callback/credentials continua existindo para o browser
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -35,10 +34,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ⚠️ TODO: quando as senhas forem migradas para bcrypt, substituir por:
-    // const match = await bcrypt.compare(password, user.password);
-    // if (!match) { ... }
-    if (password !== user.password) {
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
       return NextResponse.json(
         { error: "Credenciais inválidas." },
         { status: 401 }

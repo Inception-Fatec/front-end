@@ -38,10 +38,7 @@ export async function GET(
  
   return NextResponse.json(user, { status: 200 });
 }
- 
-// PUT /api/users/[id]
-// ADMIN pode editar tudo (incluindo role e status).
-// Usuário comum pode editar apenas name, email e password.
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -64,7 +61,6 @@ export async function PUT(
     const body = await req.json();
     const { name, email, password, role, status } = body;
  
-    // Apenas ADMIN pode mudar role e status
     if ((role !== undefined || status !== undefined) && !isAdmin) {
       return NextResponse.json(
         { error: "Apenas ADMIN pode alterar role ou status." },
@@ -135,9 +131,7 @@ export async function PUT(
     );
   }
 }
- 
-// DELETE /api/users/[id]
-// Somente ADMIN. Não pode deletar a si mesmo.
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
