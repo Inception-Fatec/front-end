@@ -1,14 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { skipCSRFCheck } from "@auth/core";
 import { supabaseAdmin } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 
 type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  skipCSRFCheck: skipCSRFCheck, 
-
   providers: [
     Credentials({
       credentials: {
@@ -24,15 +21,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .eq("email", credentials.email)
           .single();
 
-        if (error || !user) return null;
+        if (error) {
+          console.error('[auth] Erro ao buscar usuário:', error.message);
+          return null;
+        }
+
+        if (!user) return null;
 
         if (!user.status) return null;
 
-           const match = await bcrypt.compare(
-             credentials.password as string,
-             user.password
-           );
-           if (!match) return null;
+        const match = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        );
+        if (!match) return null;
 
         return {
           id: String(user.id),
@@ -61,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 8,
+    maxAge: 60 * 60 * 8, // 8 horas
   },
 
   pages: {
