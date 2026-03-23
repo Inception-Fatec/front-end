@@ -116,3 +116,91 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
+
+export async function PUT(req: NextRequest) {
+    const session = await auth();
+
+    if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    
+    if (session.user.role === "USER") {
+        return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+    }
+
+    try {
+        const body = await req.json();
+        const { id, name, id_datalogger, status } = body;
+
+        if (!id) return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
+
+        if (name) {
+            const { data: existing } = await supabaseAdmin
+                .from("stations")
+                .select("id")
+                .eq("name", name)
+                .neq("id", id)
+                .maybeSingle();
+            if (existing) return NextResponse.json({ error: "Nome já em uso" }, { status: 409 });
+        }
+
+        const { data: updated, error } = await supabaseAdmin
+            .from("stations")
+            .update({ name, id_datalogger, status })
+            .eq("id", id)
+            .select()
+            .maybeSingle();
+
+        if (error) throw error;
+
+        return NextResponse.json(updated, { status: 200 });
+    } catch (error) {
+        return NextResponse.json({ error: "Erro interno ao atualizar." }, { status: 500 });
+    }
+}
+
+export async function GET(req: NextRequest) {
+    const session = await auth();
+
+    if (!session) {
+        return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    try {
+        if (id) {
+            const { data: station, error } = await supabaseAdmin
+                .from("stations")
+                .select(`
+                    *,
+                    station_groupings ( id_grouping )
+                `)
+                .eq("id", id)
+                .maybeSingle();
+
+            if (error) throw error;
+            if (!station) return NextResponse.json({ error: "Estação não encontrada" }, { status: 404 });
+
+            return NextResponse.json(station, { status: 200 });
+        }
+
+        if (session.user.role !== "ADMIN") {
+            return NextResponse.json(
+                { error: "Acesso negado. Apenas administradores podem listar tudo." },
+                { status: 403 }
+            );
+        }
+
+        const { data: allStations, error } = await supabaseAdmin
+            .from("stations")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        return NextResponse.json(allStations, { status: 200 });
+
+    } catch (error) {
+        console.error("Erro no GET stations:", error);
+        return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+    }
+}
