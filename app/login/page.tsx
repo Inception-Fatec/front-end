@@ -25,7 +25,7 @@ export default function Login() {
         if (result?.error) {
             setError('Credenciais inválidas. Tente novamente');
         } else if (result?.ok) {
-            router.push('/')
+            router.push('./dashboard')
         }
     
     }
