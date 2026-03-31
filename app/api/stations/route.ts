@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
+import type { Station, CreateStation, UpdateStation, StationWithGroupings } from "@/types/station";
 
 export async function POST(req: NextRequest) {
     const session = await auth();
@@ -233,12 +234,9 @@ export async function GET(req: NextRequest) {
         if (id) {
             const { data: station, error } = await supabaseAdmin
                 .from("stations")
-                .select(`
-                    *,
-                    station_groupings ( id_grouping )
-                `)
+                .select(`*,station_groupings ( id_grouping )`)
                 .eq("id", id)
-                .maybeSingle();
+                .maybeSingle() as { data: StationWithGroupings | null ,error:unknown};
 
             if (error) throw error;
             if (!station) return NextResponse.json({ error: "Estação não encontrada" }, { status: 404 });
@@ -256,7 +254,7 @@ export async function GET(req: NextRequest) {
         const { data: allStations, error } = await supabaseAdmin
             .from("stations")
             .select("*")
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false }) as { data: Station[] | null , error: unknown};
 
         if (error) throw error;
         return NextResponse.json(allStations, { status: 200 });
