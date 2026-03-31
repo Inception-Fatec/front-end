@@ -1,6 +1,5 @@
 import { DefaultSession, DefaultJWT } from "next-auth";
-
-type UserRole = "ADMIN" | "OPERATOR" | "USER";
+import type { UserRole} from "./user"
 
 declare module "next-auth" {
   interface Session {

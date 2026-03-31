@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
- 
-type UserRole = "ADMIN" | "OPERATOR" | "USER";
+import type { UserRole, User } from "@/types/user"
 
 export async function GET(
   _req: NextRequest,
@@ -27,7 +26,7 @@ export async function GET(
     .from("users")
     .select("id, name, email, role, status, created_at")
     .eq("id", id)
-    .single();
+    .single() as { data: User | null , error: unknown};
  
   if (error || !user) {
     return NextResponse.json(
@@ -104,7 +103,7 @@ export async function PUT(
       .update(updates)
       .eq("id", id)
       .select("id, name, email, role, status, created_at")
-      .single();
+      .single() as {data : User | null , error : unknown};
  
     if (error || !user) {
       return NextResponse.json(

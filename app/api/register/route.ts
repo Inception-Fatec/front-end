@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
+import type { User } from "@/types/user"
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
         status: true,
       })
       .select("id, name, email, role, created_at")
-      .single();
+      .single() as { data : User | null , error : unknown};
  
     if (error || !user) {
       console.error("Supabase error ao criar usuário:", error);
