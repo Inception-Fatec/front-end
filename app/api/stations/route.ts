@@ -5,22 +5,16 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
     const session = await auth();
 
-    if (!session) {
-        return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
-    if (session.user.role !== "ADMIN") {
-        return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
-    }
     try {
         const body = await req.json();
-        const { name, id_datalogger } = body;
+        const { name, address, latitude, longitude, id_datalogger, groupings } = body;
 
-        if (!name || !id_datalogger) {
-            return NextResponse.json(
-                { error: "todos os campos são obrigatórios" },
-                { status: 400 }
-            );
+
+        if (!name || !address || !latitude || !longitude || !id_datalogger) {
+            return NextResponse.json({ error: "todos os campos são obrigatórios" }, { status: 400 });
         }
 
         const { data: existing } = await supabaseAdmin
@@ -29,44 +23,65 @@ export async function POST(req: NextRequest) {
             .eq("name", name)
             .maybeSingle();
 
-        if (existing) {
-            return NextResponse.json(
-                { error: "Nome já em uso" },
-                { status: 409 }
-            );
-        }
+        if (existing) return NextResponse.json({ error: "Nome já em uso" }, { status: 409 });
 
-        const { data: station, error } = await supabaseAdmin
+
+        if (groupings && Array.isArray(groupings) && groupings.length > 0) {
+
+            const groupIds = groupings.map((g: any) => typeof g === "number" ? g : g.id_grouping);
+
+
+            const { data: validGroups, error: checkError } = await supabaseAdmin
+                .from("groupings")
+                .select("id")
+                .in("id", groupIds);
+
+            if (checkError) throw checkError;
+
+            if (!validGroups || validGroups.length !== groupIds.length) {
+                return NextResponse.json(
+                    { error: "Um ou mais grupos informados não existem no sistema." },
+                    { status: 400 }
+                );
+            }
+        }
+        const { data: station, error: stationError } = await supabaseAdmin
             .from("stations")
             .insert({
                 name,
+                address,
+                latitude,
+                longitude,
                 id_datalogger,
                 status: true,
             })
-            .select("id, name, id_datalogger, created_at")
+            .select("id")
             .maybeSingle();
 
-        if (error || !station) {
-            console.error("Supabase error ao criar estação:", error);
-            return NextResponse.json(
-                { error: "Erro ao criar estação." },
-                { status: 500 }
-            );
+        if (stationError || !station) {
+            return NextResponse.json({ error: "Erro ao criar estação." }, { status: 500 });
         }
-        return NextResponse.json(
-            {
-                id: station.id,
-                name: station.name,
-                id_datalogger: station.id_datalogger,
-                created_at: station.created_at,
-            },
-            { status: 201 }
-        );
-    } catch {
-        return NextResponse.json(
-            { error: "Erro interno do servidor." },
-            { status: 500 }
-        );
+
+        if (groupings && Array.isArray(groupings) && groupings.length > 0) {
+            const stationGroupings = groupings.map((g: any) => ({
+                id_station: station.id,
+                id_grouping: typeof g === "number" ? g : g.id_grouping
+            }));
+
+            await supabaseAdmin.from("station_groupings").insert(stationGroupings);
+        }
+
+        const { data: stationWithGroupings } = await supabaseAdmin
+            .from("stations")
+            .select(` * , station_groupings ( id_grouping ) `)
+            .eq("id", station.id)
+            .maybeSingle();
+
+        return NextResponse.json(stationWithGroupings, { status: 201 });
+
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
     }
 }
 
@@ -121,14 +136,14 @@ export async function PUT(req: NextRequest) {
     const session = await auth();
 
     if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    
+
     if (session.user.role === "USER") {
         return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
     try {
         const body = await req.json();
-        const { id, name, id_datalogger, status } = body;
+        const { id, name, id_datalogger, status, groupings } = body;
 
         if (!id) return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
 
@@ -151,7 +166,54 @@ export async function PUT(req: NextRequest) {
 
         if (error) throw error;
 
-        return NextResponse.json(updated, { status: 200 });
+        if (groupings !== undefined) {
+
+            const { error: deleteError } = await supabaseAdmin
+                .from("station_groupings")
+                .delete()
+                .eq("id_station", id);
+
+            if (deleteError) {
+                return NextResponse.json(
+                    { error: "Erro ao atualizar grupos." },
+                    { status: 500 }
+                );
+            }
+
+            if (Array.isArray(groupings) && groupings.length > 0) {
+
+                const stationGroupings = groupings.map((g: any) => ({
+                    id_station: id,
+                    id_grouping: typeof g === "number" ? g : g.id_grouping
+                }));
+
+                const { error: insertError } = await supabaseAdmin
+                    .from("station_groupings")
+                    .insert(stationGroupings);
+
+                if (insertError) {
+                    return NextResponse.json(
+                        { error: "Erro ao inserir grupos." },
+                        { status: 500 }
+                    );
+                }
+            }
+        }
+        const { data: stationWithGroupings, error: fetchError } = await supabaseAdmin
+            .from("stations")
+            .select(`*, station_groupings ( id_grouping )`)
+            .eq("id", id)
+            .maybeSingle();
+
+        if (fetchError || !stationWithGroupings) {
+            return NextResponse.json(
+                { error: "Erro ao buscar estação atualizada." },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json(stationWithGroupings, { status: 200 });
+
     } catch (error) {
         return NextResponse.json({ error: "Erro interno ao atualizar." }, { status: 500 });
     }
