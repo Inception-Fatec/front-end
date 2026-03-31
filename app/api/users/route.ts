@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
- 
-type UserRole = "ADMIN" | "OPERATOR" | "USER";
+import type { UserRole, User } from "@/types/user"
  
 export async function GET() {
   const session = await auth();
@@ -19,7 +18,7 @@ export async function GET() {
   const { data: users, error } = await supabaseAdmin
     .from("users")
     .select("id, name, email, role, status, created_at")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }) as { data: User[] | null , error:unknown };
  
   if (error) {
     return NextResponse.json(
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
  
   try {
-    const body = await req.json();
+    const body: Pick<User, "name" | "email" | "role"> & { password: string } = await req.json();
     const { name, email, password, role } = body;
  
     if (!name || !email || !password || !role) {

@@ -1,5 +1,3 @@
-// types/api.ts
-
 export type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
 // ─── Tabelas do banco ─────────────────────────────────────────────────────────
