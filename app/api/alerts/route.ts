@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     const uniqueTypes = [...new Set(parameterTypes?.map(p => p.id_parameter_type))];
-    
+
     if (uniqueTypes.length > 1) {
       return NextResponse.json({ error: "Todos os parâmetros devem ser do mesmo tipo." }, { status: 400 });
     }
@@ -75,32 +75,48 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-    const session = await auth();
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
-    if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  try {
+    const url = new URL(req.url);
+    const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 10), 1), 50);
 
-    try {
-        const { data, error } = await supabaseAdmin
-          .from("alerts")
-          .select(`
-              *,
-              alert_parameters (
-                  *,
-                  parameters (
-                    parameter_types ( * ),
-                    stations ( id, name )
-                  )
-              )
-          `);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
-        if (error) throw error;
+    const { data, error, count } = await supabaseAdmin
+      .from("alerts")
+      .select(`
+        *,
+        alert_parameters (
+          *,
+          parameters (
+            parameter_types ( * ),
+            stations ( id, name )
+          )
+        )
+      `, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-        return NextResponse.json(data as AlertWithParameters[], { status: 200 });
+    if (error) throw error;
 
-    } catch (error) {
-        console.error("Erro no GET alerts:", error);
-        return NextResponse.json({ error: "Erro interno." }, { status: 500 });
-    }
+    return NextResponse.json({
+      data: data as AlertWithParameters[],
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error("Erro no GET alerts:", error);
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
@@ -204,50 +220,50 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-    const session = await auth();
-    if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    if (session.user.role === "USER") return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
-        
-    try {
-        const { id } = await req.json();
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  if (session.user.role === "USER") return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
-        if (!id) return NextResponse.json( { error: "id é obrigatório" }, { status: 400 });
+  try {
+    const { id } = await req.json();
 
-        const { error: alertParameterError } = await supabaseAdmin
-            .from("alert_parameters")
-            .delete()
-            .eq("id_alert", id);
+    if (!id) return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
 
-        if (alertParameterError) {
-            console.error("Erro ao deletar alert_parameters:", alertParameterError);
-            return NextResponse.json(
-                { error: "Erro ao deletar alert_parameters" },
-                { status: 500 }
-            );
-        }
+    const { error: alertParameterError } = await supabaseAdmin
+      .from("alert_parameters")
+      .delete()
+      .eq("id_alert", id);
 
-        const { error } = await supabaseAdmin
-            .from("alerts")
-            .delete()
-            .eq("id", id);
-
-        if (error) {
-            console.error("Erro ao deletar:", error);
-            return NextResponse.json(
-                { error: "Erro ao deletar alerta" },
-                { status: 500 }
-            );
-        }
-
-        return NextResponse.json(
-            { message: "Alerta deletada com sucesso" },
-            { status: 200 }
-        );
-
-    } catch {
-        return NextResponse.json(
-            { error: "Erro interno do servidor." },
-            { status: 500 }
-        );
+    if (alertParameterError) {
+      console.error("Erro ao deletar alert_parameters:", alertParameterError);
+      return NextResponse.json(
+        { error: "Erro ao deletar alert_parameters" },
+        { status: 500 }
+      );
     }
+
+    const { error } = await supabaseAdmin
+      .from("alerts")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erro ao deletar:", error);
+      return NextResponse.json(
+        { error: "Erro ao deletar alerta" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Alerta deletada com sucesso" },
+      { status: 200 }
+    );
+
+  } catch {
+    return NextResponse.json(
+      { error: "Erro interno do servidor." },
+      { status: 500 }
+    );
+  }
 }

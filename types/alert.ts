@@ -49,4 +49,8 @@ export type AlertLogWithDetails = AlertLog & {
       symbol: string;
     };
   };
+  user_alerts: {
+    id_user: number;
+    seen: boolean;
+  } | null;
 };
