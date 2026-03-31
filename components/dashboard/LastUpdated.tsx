@@ -1,13 +1,11 @@
 "use client";
-
-// components/dashboard/LastUpdated.tsx
-
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
 export function LastUpdated({ onRefresh }: { onRefresh: () => void }) {
   const [secondsAgo, setSecondsAgo] = useState(0);
 
+   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setSecondsAgo(0);
     const t = setInterval(() => setSecondsAgo((s) => s + 1), 1000);
