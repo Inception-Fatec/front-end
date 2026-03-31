@@ -1,3 +1,5 @@
+import { ParameterWithStationAndType } from "@/types/parameter";
+
 export type AlertSeverity = "CRITICAL" | "MODERATE" | "MINOR";
 export type AlertOperator = ">" | "<" | ">=" | "<=" | "=";
 
@@ -28,6 +30,7 @@ export type AlertParameter = {
   id: number;
   id_parameter: number;
   id_alert: number;
+  parameter_types: ParameterWithStationAndType;
 };
 
 export type AlertWithParameters = Alert & {
@@ -36,11 +39,14 @@ export type AlertWithParameters = Alert & {
 
 export type AlertLogWithDetails = AlertLog & {
   stations: {
-    id: number;
     name: string;
   };
   parameters: {
-    id: number;
     id_parameter_type: number;
+    parameter_type: {
+      name: string;
+      unit: string;
+      symbol: string;
+    };
   };
 };
