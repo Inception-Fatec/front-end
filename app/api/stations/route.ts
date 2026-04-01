@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { name, id_datalogger, address, latitude, longitude, parameters } = body;
 
     if (!name || !id_datalogger) {
-      return NextResponse.json({ error: "name e id_datalogger são obrigatórios." }, { status: 400 });
+      return NextResponse.json({ error: "todos os campos são obrigatório" }, { status: 400 });
     }
 
     const { data: existing } = await supabaseAdmin
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       .eq("name", name)
       .maybeSingle();
 
-    if (existing) return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
+    if (existing) return NextResponse.json({ error: "Nome já em uso" }, { status: 409 });
 
     const { data: station, error } = await supabaseAdmin
       .from("stations")
@@ -75,7 +75,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { id } = await req.json();
-    if (!id) return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
+    if (!id) return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
 
     const { error } = await supabaseAdmin
       .from("stations")
