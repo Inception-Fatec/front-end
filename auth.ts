@@ -2,8 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { supabaseAdmin } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
-
-type UserRole = "ADMIN" | "OPERATOR" | "USER";
+import type { UserRole, UserWithPassword } from "@/types/user"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
