@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { name, id_datalogger, address, latitude, longitude, parameters } = body;
 
     if (!name || !id_datalogger) {
-      return NextResponse.json({ error: "todos os campos são obrigatório" }, { status: 400 });
+      return NextResponse.json({ error: "todos os campos são obrigatórios" }, { status: 400 });
     }
 
     const { data: existing } = await supabaseAdmin
