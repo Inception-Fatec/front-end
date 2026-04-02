@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
             .eq("name", name)
             .maybeSingle();
 
-        if (existing) return NextResponse.json({ error: "Nome já em uso" }, { status: 409 });
+        if (existing) return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
 
         const { data: existingDatalogger } = await supabaseAdmin
             .from("stations")
@@ -174,7 +174,7 @@ export async function PUT(req: NextRequest) {
         const body: UpdateStation & { action?: "rename" | "disable"; parameters?: number[]; groupings?: number[] } = await req.json();
         const { id, action, name, id_datalogger, status, address, latitude, longitude, parameters, groupings } = body;
 
-        if (!id) return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
+        if (!id) return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
         if (role === "OPERATOR") {
             if (!name && status === undefined) {
@@ -310,7 +310,7 @@ export async function DELETE(req: NextRequest) {
 
     try {
         const { id }: { id: number } = await req.json();
-        if (!id) return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
+        if (!id) return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
         const { data: existing } = await supabaseAdmin
             .from("stations")
