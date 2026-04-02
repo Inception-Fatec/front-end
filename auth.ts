@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { supabaseAdmin } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
-import type { UserRole, UserWithPassword } from "@/types/user"
+import type { UserRole } from "@/types/user";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -21,7 +21,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .single();
 
         if (error) {
-          console.error('[auth] Erro ao buscar usuário:', error.message);
+          console.error("[auth] Erro ao buscar usuário:", error.message);
           return null;
         }
 
@@ -31,7 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const match = await bcrypt.compare(
           credentials.password as string,
-          user.password
+          user.password,
         );
         if (!match) return null;
 
