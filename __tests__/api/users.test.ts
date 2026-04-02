@@ -8,6 +8,27 @@ const mockSelectFn = jest.fn()
 const mockInsertFn = jest.fn()
 const mockUpdateFn = jest.fn()
 
+interface QueryChain {
+    in: jest.Mock;
+    or: jest.Mock;
+    eq: jest.Mock;
+    range: jest.Mock;
+    then: (resolve: (value: unknown) => void, reject: (reason?: unknown) => void) => void;
+}
+
+function createQueryMock(): QueryChain {
+    const chain: QueryChain = {
+        in: jest.fn(() => chain),
+        or: jest.fn(() => chain),
+        eq: jest.fn(() => chain),
+        range: jest.fn(() => chain),
+        then: function(resolve: (value: unknown) => void, reject: (reason?: unknown) => void) {
+            Promise.resolve(mockSelectFn()).then(resolve, reject);
+        }
+    };
+    return chain;
+}
+
 jest.mock('next/server', () => ({
     NextResponse: {
         json: jest.fn((body, init) => {
@@ -34,7 +55,7 @@ jest.mock('@/lib/supabase', () => ({
                 eq: jest.fn(() => ({
                     single: mockSelectFn
                 })),
-                order: mockSelectFn
+                order: jest.fn(() => createQueryMock())
             })),
             insert: jest.fn(() => ({
                 select: jest.fn(() => ({
@@ -52,9 +73,10 @@ jest.mock('@/lib/supabase', () => ({
     }
 }))
 
-function createMockRequest(body: unknown) {
+function createMockRequest(body?: unknown, url = "http://localhost/api/users") {
     return {
-        json: jest.fn().mockResolvedValueOnce(body)
+        url,
+        json: jest.fn().mockResolvedValue(body)
     } as unknown as NextRequest
 }
 
@@ -69,7 +91,8 @@ describe('GET /api/users', () => {
     it('Deve retornar 401 se não autenticado', async () => {
         (auth as jest.Mock).mockResolvedValueOnce(null);
 
-        const res = await getUsers()
+        const req = createMockRequest()  
+        const res = await getUsers(req)
         const json = await res.json()
 
         expect(res.status).toBe(401)
@@ -80,7 +103,8 @@ describe('GET /api/users', () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {role: 'USER'}
         });
-        const res = await getUsers()
+        const req = createMockRequest()  
+        const res = await getUsers(req)
         const json = await res.json()
         
         expect(res.status).toBe(403)
@@ -97,13 +121,16 @@ describe('GET /api/users', () => {
         ];   
         mockSelectFn.mockResolvedValueOnce({
             data: mockUsers,
+            count: 2,
             error: null
-        })  
-        const res = await getUsers()
+        })
+        const req = createMockRequest()  
+        const res = await getUsers(req)
         const json = await res.json()
 
         expect(res.status).toBe(200)
-        expect(json).toEqual(mockUsers)
+        expect(json.data).toEqual(mockUsers)
+        expect(json.total).toBe(2)
     })
 })
 
@@ -150,7 +177,7 @@ describe('POST /api/users', () => {
         expect(json.error).toBe('name, email, password e role são obrigatórios.')
     })
 
-    it('Deve retornar 400 se o role é invalido', async () => {
+    it('Deve retornar 403 se o role é invalido', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {role: 'ADMIN'}
         });
@@ -158,8 +185,8 @@ describe('POST /api/users', () => {
         const res = await postUser(req)
         const json = await res.json()
 
-        expect(res.status).toBe(400)
-        expect(json.error).toContain('role inválido')
+        expect(res.status).toBe(403)
+        expect(json.error).toContain('Você não tem permissão para criar um usuário com role INVALID_ROLE.')
     })
 
     it('Deve retornar 400 se a senha tem menos de 6 caracteres', async () => {
