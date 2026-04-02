@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import type { Station, CreateStation, UpdateStation, StationWithGroupings } from "@/types/station";
+import type { Station, CreateStation, UpdateStation, StationWithGroupings, StationWithDetails } from "@/types/station";
 
 export async function POST(req: NextRequest) {
     const session = await auth();
@@ -120,19 +120,16 @@ export async function GET(req: NextRequest) {
         if (id) {
             const { data: station, error } = await supabaseAdmin
                 .from("stations")
-                .select(`*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ) )`)
+                .select(`*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ), measurements ( id, value, date_time ) )`)                
                 .eq("id", id)
                 .maybeSingle();
 
             if (error) throw error;
             if (!station) return NextResponse.json({ error: "Estação não encontrada." }, { status: 404 });
 
-            return NextResponse.json(station as StationWithGroupings, { status: 200 });
+            return NextResponse.json(station as StationWithDetails, { status: 200 });
         }
 
-        if (session.user.role !== "ADMIN") {
-            return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
-        }
 
         const page = Math.max(1, Number(searchParams.get("page") ?? 1));
         const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 10), 1), 50);
@@ -141,7 +138,7 @@ export async function GET(req: NextRequest) {
 
         const { data, error, count } = await supabaseAdmin
             .from("stations")
-            .select(`*, parameters ( id, id_parameter_type, parameter_types ( name ) )`, { count: "exact" })
+            .select(`*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, parameter_types ( name ) )`, { count: "exact" })
             .order("created_at", { ascending: false })
             .range(from, to);
 
@@ -178,7 +175,7 @@ export async function PUT(req: NextRequest) {
 
         if (role === "OPERATOR") {
             if (!name && status === undefined) {
-                return NextResponse.json({ error: "Informe name ou status para atualizar." }, { status: 400 });
+                return NextResponse.json({ error: "Informe nome ou status para atualizar." }, { status: 400 });
             }
 
             if (name) {
@@ -208,7 +205,6 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json(data as Station, { status: 200 });
         }
 
-        // ADMIN
         if (name) {
             const { data: existing } = await supabaseAdmin
                 .from("stations")

@@ -1,5 +1,6 @@
 import type { ParameterWithType } from "@/types/parameter";
 import type { Alert } from "@/types/alert";
+import type { Measurement } from "@/types/measurement";
 
 export type Station = {
   id: number;
@@ -30,5 +31,6 @@ export type StationWithGroupings = Station & {
 export type StationWithDetails = StationWithGroupings & {
   parameters: (ParameterWithType & {
     alert_parameters: { alerts: Alert }[];
+    measurements: Pick<Measurement, "id" | "value" | "date_time">[];
   })[];
 };
