@@ -1,6 +1,6 @@
 export type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
-export type User = {
+export interface User {
   id: number;
   name: string;
   email: string;
@@ -8,14 +8,24 @@ export type User = {
   first_access: boolean;
   created_at: string;
   status: boolean;
-};
+}
 
-export type UserWithPassword = User & {
+export interface PaginatedUsers {
+  data: User[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface CreateUserPayload {
+  name: string;
+  email: string;
   password: string;
-};
+  role: UserRole;
+}
 
-export type UserAlert = {
-  id_user: number;
-  id_alert_log: number;
-  seen: boolean;
-};
+export interface UpdateUserPayload {
+  name?: string;
+  role?: UserRole;
+  status?: boolean;
+}
