@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("users")
-    .select("id, name, email, role, status, created_at", { count: "exact" })
+    .select("id, name, email, role, status, first_access, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -80,7 +80,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body: { name: string; email: string; password: string; role: UserRole } = await req.json();
-    const { name, email, password, role } = body;
+    const { name, password, role } = body;
+
+    const email = body.email?.toLowerCase().trim();
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
@@ -89,10 +91,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const allowedRoles: UserRole[] = isAdmin
-      ? ["ADMIN", "OPERATOR", "USER"]
-      : ["OPERATOR", "USER"];
+    const supportedRoles: UserRole[] = ["ADMIN", "OPERATOR", "USER"];
+    if (!supportedRoles.includes(role)) {
+      return NextResponse.json({ error: `Role inválido: ${role}.` }, { status: 400 });
+    }
 
+    const allowedRoles: UserRole[] = isAdmin ? supportedRoles : ["OPERATOR", "USER"];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json(
         { error: `Você não tem permissão para criar um usuário com role ${role}.` },
@@ -110,7 +114,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabaseAdmin
       .from("users")
       .select("id")
-      .eq("email", email)
+      .ilike("email", email)
       .single();
 
     if (existing) {
