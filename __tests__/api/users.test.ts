@@ -55,6 +55,9 @@ jest.mock('@/lib/supabase', () => ({
                 eq: jest.fn(() => ({
                     single: mockSelectFn
                 })),
+                ilike: jest.fn(() => ({
+                    single: mockSelectFn
+                })),
                 order: jest.fn(() => createQueryMock())
             })),
             insert: jest.fn(() => ({
@@ -99,7 +102,7 @@ describe('GET /api/users', () => {
         expect(json.error).toBe('Não autenticado.')
     })
 
-    it('Deve retornar 403 se o usuário não é ADMIN', async () => {
+    it('Deve retornar 403 se o usuário não é ADMIN nem OPERATOR', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {role: 'USER'}
         });
@@ -153,7 +156,7 @@ describe('POST /api/users', () => {
         expect(json.error).toBe('Não autenticado.')
     })
 
-    it('Deve retornar 403 se o usuário não é ADMIN', async () => {
+    it('Deve retornar 403 se o usuário não tem permissões para a rota', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {role: 'USER'}
         });
@@ -177,7 +180,7 @@ describe('POST /api/users', () => {
         expect(json.error).toBe('name, email, password e role são obrigatórios.')
     })
 
-    it('Deve retornar 403 se o role é invalido', async () => {
+    it('Deve retornar 400 se o role é invalido', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {role: 'ADMIN'}
         });
@@ -185,8 +188,8 @@ describe('POST /api/users', () => {
         const res = await postUser(req)
         const json = await res.json()
 
-        expect(res.status).toBe(403)
-        expect(json.error).toContain('Você não tem permissão para criar um usuário com role INVALID_ROLE.')
+        expect(res.status).toBe(400)
+        expect(json.error).toContain('Role inválido: INVALID_ROLE.')
     })
 
     it('Deve retornar 400 se a senha tem menos de 6 caracteres', async () => {
@@ -223,7 +226,7 @@ describe('POST /api/users', () => {
         });
         mockSelectFn.mockResolvedValueOnce({
             data: null,
-            error: {message: 'Not Found'}
+            error: null
         });
         (bcrypt.hash as jest.Mock).mockResolvedValueOnce('hashed_password');
         
@@ -271,10 +274,12 @@ describe('GET /api/users/[id]', () => {
         expect(json.error).toBe('Não autenticado.')
     })
 
-    it('Deve retornar 403 se usuário tenta acessar outro usuário (não ADMIN)', async () => {
+    it('Deve retornar 403 se usuário tenta acessar outro usuário e não tem permisao', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {id:'1', role: 'USER'}
         });
+        mockSelectFn.mockResolvedValueOnce({ data: { role: 'OPERATOR' }, error: null }); 
+
         const req = createMockRequest({})
         const res = await getUserById(req, { params: Promise.resolve({id: '2'}) })
         const json = await res.json()
@@ -317,7 +322,11 @@ describe('GET /api/users/[id]', () => {
 
     it('Deve retornar 200 e dados do próprio usuário', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
-            user: {id: '1', role: 'USER'}
+            user: {id: '1', role: 'OPERATOR'}
+        });
+        mockSelectFn.mockResolvedValueOnce({
+            data: { role: 'USER' },
+            error: null
         });
         mockSelectFn.mockResolvedValueOnce({
             data: {id: 1, name: 'John Doe', email: 'john@example.com', role: 'USER', status: true, created_at: '2024-01-01'},
@@ -351,16 +360,18 @@ describe('PUT /api/users/[id]', () => {
         expect(json.error).toBe('Não autenticado.')
     })
 
-    it('Deve retornar 403 se usuário tenta alterar role sem ser ADMIN', async () => {
+    it('Deve retornar 403 se usuário tenta alterar role ADMIN sem permissão', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
-            user: {id: '1', role: 'USER'}
+            user: {id: '1', role: 'OPERATOR'}
         });
+        mockSelectFn.mockResolvedValueOnce({ data: { role: 'USER' }, error: null }); 
+
         const req = createMockRequest({role: 'ADMIN'})
-        const res = await putUser(req, { params: Promise.resolve({id: '1' })})
+        const res = await putUser(req, { params: Promise.resolve({id: '2' })})
         const json = await res.json()
 
         expect(res.status).toBe(403)
-        expect(json.error).toBe('Apenas ADMIN pode alterar role ou status.')
+        expect(json.error).toBe('Você não tem permissão para atribuir role ADMIN.')
     })
 
     it('Deve retornar 400 se o role é inválido', async () => {
@@ -377,8 +388,10 @@ describe('PUT /api/users/[id]', () => {
 
     it('Deve retornar 400 se nenhum campo para atualizar', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
-            user: {id: '1', role: 'USER'}
+            user: {id: '1', role: 'OPERATOR'}
         });
+        mockSelectFn.mockResolvedValueOnce({ data: { role: 'USER' }, error: null }); 
+
         const req = createMockRequest({})
         const res = await putUser(req, { params: Promise.resolve({id: '1' })})
         const json = await res.json()
