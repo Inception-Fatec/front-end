@@ -18,7 +18,7 @@ export default function Login() {
 
         const result = await signIn('credentials', {
             redirect: false,
-            email,
+            email: email.toLocaleLowerCase(),
             password
         });
 
