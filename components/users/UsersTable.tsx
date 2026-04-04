@@ -184,7 +184,7 @@ export function UsersTable({
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1">
-                            {manageable && (
+                            {manageable && !isSelf && (
                               <button
                                 onClick={() => setEditUser(user)}
                                 className="p-1.5 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"
