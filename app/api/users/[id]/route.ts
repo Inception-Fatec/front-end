@@ -4,6 +4,30 @@ import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { UserRole, User } from "@/types/user"
 
+async function canManageTarget(
+  sessionRole: UserRole,
+  sessionId: string,
+  targetId: string
+): Promise<{ allowed: boolean; targetRole?: UserRole }> {
+  if (sessionRole === "ADMIN") return { allowed: true };
+
+  const { data: target } = await supabaseAdmin
+    .from("users")
+    .select("role")
+    .eq("id", targetId)
+    .single();
+
+  const targetRole = target?.role as UserRole | undefined;
+
+  if (sessionRole === "OPERATOR") {
+    const isSelf       = sessionId === targetId;
+    const isManageable = targetRole === "OPERATOR" || targetRole === "USER";
+    return { allowed: isSelf || isManageable, targetRole };
+  }
+
+  return { allowed: false, targetRole };
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,24 +39,24 @@ export async function GET(
   }
  
   const { id } = await params;
-  const isAdmin = session.user.role === "ADMIN";
-  const isSelf = session.user.id === id;
- 
-  if (!isAdmin && !isSelf) {
+  const { allowed } = await canManageTarget(
+    session.user.role as UserRole,
+    session.user.id,
+    id
+  );
+
+  if (!allowed) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
  
   const { data: user, error } = await supabaseAdmin
     .from("users")
-    .select("id, name, email, role, status, created_at")
+    .select("id, name, email, role, status, first_access, created_at")
     .eq("id", id)
-    .single() as { data: User | null , error: unknown};
+    .single() as { data: User | null; error: unknown };
  
   if (error || !user) {
-    return NextResponse.json(
-      { error: "Usuário não encontrado." },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
   }
  
   return NextResponse.json(user, { status: 200 });
@@ -49,10 +73,11 @@ export async function PUT(
   }
  
   const { id } = await params;
-  const isAdmin = session.user.role === "ADMIN";
-  const isSelf = session.user.id === id;
+  const sessionRole = session.user.role as UserRole;
+  const isAdmin = sessionRole === "ADMIN";
+  const { allowed } = await canManageTarget(sessionRole, session.user.id, id);
  
-  if (!isAdmin && !isSelf) {
+  if (!allowed) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
  
@@ -60,9 +85,9 @@ export async function PUT(
     const body = await req.json();
     const { name, email, password, role, status } = body;
  
-    if ((role !== undefined || status !== undefined) && !isAdmin) {
+    if (role !== undefined && role === "ADMIN" && !isAdmin) {
       return NextResponse.json(
-        { error: "Apenas ADMIN pode alterar role ou status." },
+        { error: "Você não tem permissão para atribuir role ADMIN." },
         { status: 403 }
       );
     }
@@ -86,7 +111,7 @@ export async function PUT(
  
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
-    if (email !== undefined) updates.email = email;
+    if (email !== undefined) updates.email = email.toLowerCase().trim();
     if (password !== undefined) updates.password = await bcrypt.hash(password, 10);
     if (role !== undefined) updates.role = role;
     if (status !== undefined) updates.status = status;
@@ -102,8 +127,8 @@ export async function PUT(
       .from("users")
       .update(updates)
       .eq("id", id)
-      .select("id, name, email, role, status, created_at")
-      .single() as {data : User | null , error : unknown};
+      .select("id, name, email, role, status, first_access, created_at")
+      .single() as {data : User | null; error : unknown};
  
     if (error || !user) {
       return NextResponse.json(
@@ -112,17 +137,7 @@ export async function PUT(
       );
     }
  
-    return NextResponse.json(
-      {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        created_at: user.created_at,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(user, { status: 200 });
   } catch {
     return NextResponse.json(
       { error: "Erro interno do servidor." },
@@ -141,17 +156,20 @@ export async function DELETE(
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
  
-  if (session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
-  }
- 
   const { id } = await params;
+  const sessionRole = session.user.role as UserRole;
  
   if (session.user.id === id) {
     return NextResponse.json(
       { error: "Você não pode deletar sua própria conta." },
       { status: 400 }
     );
+  }
+
+  const { allowed } = await canManageTarget(sessionRole, session.user.id, id);
+
+  if (!allowed) {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
  
   const { error } = await supabaseAdmin.from("users").delete().eq("id", id);

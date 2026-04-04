@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: Users,
     label: "Usuários",
     href: "/dashboard/usuarios",
-    allowedRoles: ["ADMIN"],
+    allowedRoles: ["ADMIN", "OPERATOR"],
   },
 ];
 
