@@ -1,6 +1,4 @@
-import type { ParameterWithType } from "@/types/parameter";
-import type { Alert } from "@/types/alert";
-import type { Measurement } from "@/types/measurement";
+import { Parameter } from "@/types/parameter";
 
 export type Station = {
   id: number;
@@ -14,10 +12,14 @@ export type Station = {
   status: boolean;
 };
 
-export type CreateStation = Omit<Station, "id" | "created_at" | "last_measurement" | "address" | "latitude" | "longitude"> & {
-  address?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+export type StationWithParameters = Station & {
+  parameters: Parameter[];
+};
+
+export type CreateStation = Omit<Station, "id" | "created_at" | "last_measurement"> & {
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type UpdateStation = Partial<Omit<Station, "id" | "created_at">> & {
@@ -25,12 +27,15 @@ export type UpdateStation = Partial<Omit<Station, "id" | "created_at">> & {
 };
 
 export type StationWithGroupings = Station & {
-  station_groupings: { id_grouping: number; groupings?: { name: string } }[];
+  station_groupings: { id_grouping: number }[];
 };
 
-export type StationWithDetails = StationWithGroupings & {
-  parameters: (ParameterWithType & {
-    alert_parameters: { alerts: Alert }[];
-    measurements: Pick<Measurement, "id" | "value" | "date_time">[];
-  })[];
+export type PaginatedStations = {
+  data: StationWithParameters[];
+  pagination: {
+    page: number;
+    limit: number | "all";
+    total: number;
+    totalPages: number;
+  };
 };

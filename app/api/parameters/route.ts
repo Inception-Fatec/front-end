@@ -10,28 +10,40 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
-    const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 10), 1), 50);
+    const rawLimit = url.searchParams.get("limit");
+    const isAll = rawLimit === "all";
 
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+    const limit = isAll
+      ? null
+      : Math.min(Math.max(Number(rawLimit ?? 10), 1), 50);
 
-    const { data, error, count } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("parameter_types")
       .select("*", { count: "exact" })
-      .order("id", { ascending: true })
-      .range(from, to);
+      .order("id", { ascending: true });
+
+    if (!isAll && limit !== null) {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
 
-    return NextResponse.json({
-      data: data as ParameterType[],
-      pagination: {
-        page,
-        limit,
-        total: count,
-        totalPages: Math.ceil((count || 0) / limit),
-      },
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        data: data as ParameterType[],
+        pagination: {
+          page,
+          limit: isAll ? "all" : limit,
+          total: count,
+          totalPages: isAll
+            ? 1
+            : Math.ceil((count || 0) / (limit || 1)),
+        },
+      }, { status: 200 });
 
   } catch (error) {
     console.error("Erro no GET parameter_types:", error);
