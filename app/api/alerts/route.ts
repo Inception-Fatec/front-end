@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import { AlertSeverity, AlertOperator, AlertWithParameters, Alert } from "@/types/alert";
+import { PaginatedAlerts, AlertSeverity, AlertOperator, AlertWithParameters, Alert } from "@/types/alert";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -82,11 +82,14 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 10), 1), 50);
+    const search = url.searchParams.get("search")?.trim() || "";
+    const parameterType = Number(url.searchParams.get("parameterType") ?? 0);
+    const severity = url.searchParams.get("severity")?.trim() || "";
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    const { data, error, count } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("alerts")
       .select(`
         *,
@@ -101,17 +104,37 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .range(from, to);
 
+    if (search) {
+      query = query.ilike("name", `%${search}%`);
+    }
+
+    if (parameterType) {
+      const { data: matchingAlerts } = await supabaseAdmin
+        .from("alert_parameters")
+        .select("id_alert, parameters!inner(id_parameter_type)")
+        .eq("parameters.id_parameter_type", parameterType);
+
+      const ids = matchingAlerts?.map((a) => a.id_alert) ?? [];
+      query = query.in("id", ids.length ? ids : [-1]);
+    }
+
+    if (severity) {
+      query = query.eq("severity", severity);
+    }
+
+    const { data, error, count } = await query;
+
     if (error) throw error;
 
     return NextResponse.json({
-      data: data as AlertWithParameters[],
+      data: data,
       pagination: {
         page,
         limit,
         total: count,
         totalPages: Math.ceil((count || 0) / limit),
       },
-    }, { status: 200 });
+    } as PaginatedAlerts, { status: 200 });
 
   } catch (error) {
     console.error("Erro no GET alerts:", error);
