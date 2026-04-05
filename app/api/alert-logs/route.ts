@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import { AlertLogWithDetails } from "@/types/alert";
+import { PaginatedAlertLogs } from "@/types/alert";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -13,6 +13,10 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const limit = Math.min(Math.max(Number(searchParams.get("limit") || 5), 1), 50);
     const all = searchParams.get("all") === "true";
+    const search = searchParams.get("search") || "";
+    const parameterType = Number(searchParams.get("parameterType") || 0);
+    const severity = searchParams.get("severity") || "";
+    const station = searchParams.get("station") || "";
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -25,25 +29,47 @@ export async function GET(req: NextRequest) {
     parameters (id_parameter_type, parameter_types (name, unit, symbol)),
     user_alerts${all ? "!left" : "!inner"} ( id_user, seen )
   `, { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
+      .order("created_at", { ascending: false });
 
     if (!all) {
       query = query.eq("user_alerts.id_user", session.user.id).eq("user_alerts.seen", false);
     }
 
+    if (search) {
+      query = query.ilike("name", `%${search}%`);
+    }
+
+    if (parameterType) {
+      const { data: matchingParams } = await supabaseAdmin
+        .from("parameters")
+        .select("id")
+        .eq("id_parameter_type", parameterType);
+
+      const paramIds = matchingParams?.map((p) => p.id) ?? [];
+      query = query.in("id_parameter", paramIds.length ? paramIds : [-1]);
+    }
+
+    if (severity) {
+      query = query.eq("severity", severity);
+    }
+
+    if (station && station !== "0") {
+      query = query.eq("id_station", Number(station));
+    }
+
+    query = query.range(from, to);
+
     const { data, error, count } = await query;
     if (error) throw error;
-    console.log("Alert logs fetched:", { data, count });
     return NextResponse.json({
-      data: data as AlertLogWithDetails[],
+      data: data,
       pagination: {
         page,
         limit,
         total: count,
         totalPages: Math.ceil((count || 0) / limit),
       }
-    }, { status: 200 });
+    } as PaginatedAlertLogs, { status: 200 });
 
   } catch (error) {
     console.error("Erro no GET notifications:", error);

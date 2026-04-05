@@ -104,10 +104,10 @@ describe('Post /api/stations', () => {
     it('Deve retornar 201 e criar uma nova estação com sucesso', async () => {
         (auth as jest.Mock).mockResolvedValueOnce({
             user: {role: 'ADMIN'}
-        });
+        }); 
         mockCheckFn
             .mockResolvedValueOnce({data: null, error: null})
-            .mockResolvedValueOnce({data: null, error: null})
+            .mockResolvedValueOnce({data: null, error: null}) 
             .mockResolvedValueOnce({
                 data: {
                     id: 1,
@@ -116,11 +116,13 @@ describe('Post /api/stations', () => {
                     created_at: '2024-03-25T10:00:00Z'
                 },
                 error: null
-            })
+            });
+
         mockInsertFn.mockResolvedValueOnce({
-            data: {id: 1},
+            data: { id: 1 },
             error: null
         });
+
         const req = createMockRequest({name: 'Weather Station', id_datalogger: 'dl001'})
         const res = await POST(req)
         const json = await res.json()

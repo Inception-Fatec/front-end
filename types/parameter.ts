@@ -26,3 +26,13 @@ export type ParameterWithStationAndType = Parameter & {
     name: string;
   };
 };
+
+export type PaginatedParameters = {
+  data: ParameterType[];
+  pagination: {
+    page: number;
+    limit: number | "all";
+    totalPages: number;
+    total: number;
+  };
+};

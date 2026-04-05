@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import type { Station, CreateStation, UpdateStation, StationWithGroupings, StationWithDetails } from "@/types/station";
+import type { Station, CreateStation, UpdateStation, StationWithGroupings, StationWithDetails, PaginatedStations } from "@/types/station";
 
 export async function POST(req: NextRequest) {
     const session = await auth();
@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
         if (id) {
             const { data: station, error } = await supabaseAdmin
                 .from("stations")
-                .select(`*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ), measurements ( id, value, date_time ) )`)                
+                .select(`*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ), measurements ( id, value, date_time ) )`)
                 .eq("id", id)
                 .maybeSingle();
 
@@ -130,29 +130,45 @@ export async function GET(req: NextRequest) {
             return NextResponse.json(station as StationWithDetails, { status: 200 });
         }
 
-
         const page = Math.max(1, Number(searchParams.get("page") ?? 1));
-        const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 10), 1), 50);
-        const from = (page - 1) * limit;
-        const to = from + limit - 1;
+        const search = searchParams.get("search") || "";
+        const rawLimit = searchParams.get("limit");
+        const isAll = rawLimit === "all";
+        const limit = isAll
+            ? null
+            : Math.min(Math.max(Number(rawLimit ?? 10), 1), 50);
 
-        const { data, error, count } = await supabaseAdmin
+        let query = supabaseAdmin
             .from("stations")
-            .select(`*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, parameter_types ( name ) )`, { count: "exact" })
-            .order("created_at", { ascending: false })
-            .range(from, to);
+            .select(`
+                *,
+                station_groupings ( id_grouping, groupings ( name ) ),
+                parameters ( id, id_parameter_type, parameter_types ( name, unit, symbol ) )
+            `, { count: "exact" })
+            .order("created_at", { ascending: false });
 
+        if (search) {
+            query = query.ilike("name", `%${search}%`);
+        }
+
+        if (!isAll && limit !== null) {
+            const from = (page - 1) * limit;
+            const to = from + limit - 1;
+            query = query.range(from, to);
+        }
+
+        const { data, error, count } = await query;
         if (error) throw error;
 
         return NextResponse.json({
-            data: data as Station[],
+            data,
             pagination: {
                 page,
-                limit,
+                limit: isAll ? "all" : limit,
                 total: count,
-                totalPages: Math.ceil((count || 0) / limit),
+                totalPages: isAll ? 1 : Math.ceil((count || 0) / (limit || 1)),
             },
-        }, { status: 200 });
+        } as PaginatedStations, { status: 200 });
 
     } catch (error) {
         console.error("Erro no GET stations:", error);

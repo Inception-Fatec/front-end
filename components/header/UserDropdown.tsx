@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import type { UserRole } from "@/types/api";
+import { LogOut } from "lucide-react";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   ADMIN: "Administrador",
@@ -88,13 +89,15 @@ export function UserDropdown({ onOpen }: UserDropdownProps) {
             </Link>
 
             <div className="border-t border-border" />
-
-            <Link
-              href="/api/auth/signout"
-              className="flex items-center px-4 py-2.5 text-sm text-danger hover:bg-danger-dim transition-colors"
-            >
-              Sair
-            </Link>
+            <div className="px-3 py-3 space-y-1">
+              <button
+                onClick={() => signOut({ redirectTo: "/login" })}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-danger hover:bg-danger-dim border border-transparent transition-all duration-150"
+              >
+                <LogOut size={18} className="shrink-0" />
+                <span>Sair</span>
+              </button>
+            </div>
           </div>
         </>
       )}

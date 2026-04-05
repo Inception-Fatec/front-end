@@ -11,6 +11,7 @@ export type Alert = {
   operator: AlertOperator;
   value: number;
   status: boolean;
+  created_at: string;
 };
 
 export type AlertLog = {
@@ -30,7 +31,7 @@ export type AlertParameter = {
   id: number;
   id_parameter: number;
   id_alert: number;
-  parameter_types: ParameterWithStationAndType;
+  parameters: ParameterWithStationAndType;
 };
 
 export type AlertWithParameters = Alert & {
@@ -40,10 +41,10 @@ export type AlertWithParameters = Alert & {
 export type AlertLogWithDetails = AlertLog & {
   stations: {
     name: string;
-  };
+  } | null;
   parameters: {
     id_parameter_type: number;
-    parameter_type: {
+    parameter_types: {
       name: string;
       unit: string;
       symbol: string;
@@ -53,4 +54,35 @@ export type AlertLogWithDetails = AlertLog & {
     id_user: number;
     seen: boolean;
   } | null;
+};
+
+export type PaginatedAlerts = {
+  data: AlertWithParameters[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export type AlertPayload = {
+  id?: number;
+  name: string;
+  message: string;
+  severity: AlertSeverity;
+  operator: AlertOperator;
+  value: number;
+  status: boolean;
+  parameters: number[];
+};
+
+export type PaginatedAlertLogs = {
+  data: AlertLogWithDetails[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };

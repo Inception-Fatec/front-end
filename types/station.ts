@@ -1,4 +1,4 @@
-import type { ParameterWithType } from "@/types/parameter";
+import type { ParameterWithType, ParameterType } from "@/types/parameter";
 import type { Alert } from "@/types/alert";
 import type { Measurement } from "@/types/measurement";
 
@@ -33,4 +33,22 @@ export type StationWithDetails = StationWithGroupings & {
     alert_parameters: { alerts: Alert }[];
     measurements: Pick<Measurement, "id" | "value" | "date_time">[];
   })[];
+};
+
+export type StationWithParameters = StationWithGroupings & {
+  parameters: {
+    id: number;
+    id_parameter_type: number;
+    parameter_types: Pick<ParameterType, "name" | "unit" | "symbol">;
+  }[];
+};
+
+export type PaginatedStations = {
+  data: StationWithParameters[];
+  pagination: {
+    page: number;
+    limit: number | "all";
+    total: number;
+    totalPages: number;
+  };
 };
