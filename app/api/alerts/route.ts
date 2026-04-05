@@ -153,7 +153,7 @@ export async function PUT(req: NextRequest) {
 
     if (!id) return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
     if (!Array.isArray(parameters) || parameters.length === 0) {
-      return NextResponse.json({ error: "parameters é obrigatório." }, { status: 400 });
+      return NextResponse.json({ error: "Pelo menos uma estação é obrigatória." }, { status: 400 });
     }
 
     const validSeverities: AlertSeverity[] = ["CRITICAL", "MODERATE", "MINOR"];
