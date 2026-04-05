@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
-import { PaginatedAlerts, AlertSeverity, AlertOperator, AlertWithParameters, Alert } from "@/types/alert";
+import { PaginatedAlerts, AlertSeverity, AlertOperator, Alert } from "@/types/alert";
 
 export async function POST(req: NextRequest) {
   const session = await auth();

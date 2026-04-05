@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus, Check, X } from "lucide-react";
+import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { SeverityBadge } from "./SeverityBadge";
 import { ParameterIcon } from "./ParameterIcon";
 import { CreateAlertModal } from "./CreateAlertModal";

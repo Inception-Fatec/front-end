@@ -179,7 +179,7 @@ export function EditAlertModal({
               <option value="">Selecionar parâmetro</option>
               {parameterTypes.map((type) => (
                 <option key={type.id} value={type.id}>
-                  {type.unit} - {type.symbol}
+                  {type.name} - {type.symbol}
                 </option>
               ))}
             </select>

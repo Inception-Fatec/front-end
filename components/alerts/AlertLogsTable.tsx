@@ -65,7 +65,7 @@ export function AlertLogsTable() {
         fetchPage(1);
         fetchParameterTypes();
         fetchStations();
-    }, [fetchPage, fetchParameterTypes]);
+    }, [fetchPage, fetchParameterTypes, fetchStations]);
 
     function handleSearch(value: string) {
         setSearch(value);
