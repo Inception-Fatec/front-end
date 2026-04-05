@@ -10,7 +10,6 @@ import {
   BarChart3,
   BookOpen,
   Users,
-  Settings,
   LogOut,
   X,
 } from "lucide-react";
@@ -42,15 +41,6 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-const BOTTOM_ITEMS: NavItem[] = [
-  { icon: Settings, label: "Configurações", href: "/dashboard/configuracoes" },
-];
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  ADMIN: "Administrador",
-  OPERATOR: "Operador",
-  USER: "Usuário",
-};
 
 function NavLink({
   item,
@@ -85,17 +75,13 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
   const userRole = (session?.user?.role ?? "USER") as UserRole;
 
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+    href === "/dashboard"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
 
   const visibleNav = NAV_ITEMS.filter(
     (item) => !item.allowedRoles || item.allowedRoles.includes(userRole),
   );
-
-  const initials = (session?.user?.name ?? "U")
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 
   return (
     <div className="flex flex-col h-full">
@@ -135,14 +121,6 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
       <div className="border-t border-border" />
 
       <div className="px-3 py-3 space-y-1">
-        {BOTTOM_ITEMS.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            isActive={isActive(item.href)}
-            onClick={onLinkClick}
-          />
-        ))}
         <button
           onClick={() => signOut({ redirectTo: "/login" })}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-danger hover:bg-danger-dim border border-transparent transition-all duration-150"
@@ -150,20 +128,6 @@ function SidebarContent({ onLinkClick }: { onLinkClick?: () => void }) {
           <LogOut size={18} className="shrink-0" />
           <span>Sair</span>
         </button>
-      </div>
-
-      <div className="px-4 py-3 border-t border-border flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-          {initials}
-        </div>
-        <div className="flex-1 min-w-0 leading-tight">
-          <p className="text-sm font-medium text-foreground truncate">
-            {session?.user?.name ?? "—"}
-          </p>
-          <p className="text-[11px] text-secondary-text">
-            {ROLE_LABEL[userRole]}
-          </p>
-        </div>
       </div>
     </div>
   );
