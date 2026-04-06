@@ -1,0 +1,17 @@
+# Ignore artifacts:
+build
+coverage
+
+package.json
+package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+postcss.config.mjs
+eslint.config.mjs
+tsconfig.json
+next.config.ts
+
+ci.yml
+.prettierrc
+
+README.md

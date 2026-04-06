@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* ── Base ── */
+  --color-background: #0d1117;
+  --color-foreground: #f1f5f9;
+  --color-secondary-text: #64748b;
+  --color-card-background: #161b22;
+  --color-card-foreground: #c9d1d9;
+  --color-border: #30363d;
+
+  /* ── Semânticas ── */
+  --color-alert: #ef4444; /* erros, badges críticos */
+  --color-danger: #f85149; /* botão sair, ações destrutivas */
+  --color-danger-dim: #f8514911; /* fundo hover de ações destrutivas */
+
+  /* ── Primária Tecsus (azul elétrico) ── */
+  --color-primary: #1a8cff; /* botões, avatares, ícones ativos */
+  --color-primary-dim: #1a8cff1a; /* fundo do item ativo na sidebar */
+  --color-primary-border: #1a8cff33; /* borda do item ativo na sidebar */
+
+  /* ── Tipografia ── */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
