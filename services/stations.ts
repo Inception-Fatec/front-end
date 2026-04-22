@@ -4,7 +4,7 @@ const PAGE_SIZE = 8;
 
 interface GetStationsParams {
   page?: number;
-  limit?: number;
+  limit?: number | "all";
   search?: string;
   status?: string;
   grouping?: string;
@@ -76,7 +76,9 @@ export async function deleteStation(id: number): Promise<void> {
   }
 }
 
-export async function getStationById(id: number): Promise<import("@/types/station").StationWithDetails> {
+export async function getStationById(
+  id: number,
+): Promise<import("@/types/station").StationWithDetails> {
   const res = await fetch(`/api/stations?id=${id}`, { cache: "no-store" });
 
   if (!res.ok) {

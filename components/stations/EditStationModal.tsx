@@ -60,9 +60,12 @@ export function EditStationModal({
     setError(null);
 
     if (!name.trim()) return setError("Nome não pode ser vazio.");
-    if (!idDatalogger.trim()) return setError("ID do datalogger não pode ser vazio.");
-    if (latitude && isNaN(Number(latitude))) return setError("Latitude inválida.");
-    if (longitude && isNaN(Number(longitude))) return setError("Longitude inválida.");
+    if (!idDatalogger.trim())
+      return setError("ID do datalogger não pode ser vazio.");
+    if (latitude && isNaN(Number(latitude)))
+      return setError("Latitude inválida.");
+    if (longitude && isNaN(Number(longitude)))
+      return setError("Longitude inválida.");
 
     setLoading(true);
     try {
@@ -89,7 +92,9 @@ export function EditStationModal({
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar estação.");
+      setError(
+        err instanceof Error ? err.message : "Erro ao atualizar estação.",
+      );
     } finally {
       setLoading(false);
     }
@@ -100,7 +105,9 @@ export function EditStationModal({
       <div className="w-full max-w-md bg-card-background border border-border rounded-xl shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-          <h2 className="text-sm font-semibold text-foreground">Editar Estação</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            Editar Estação
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"
@@ -193,7 +200,10 @@ export function EditStationModal({
               {loadingParams ? (
                 <div className="grid grid-cols-2 gap-2">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-8 rounded-lg bg-border animate-pulse" />
+                    <div
+                      key={i}
+                      className="h-8 rounded-lg bg-border animate-pulse"
+                    />
                   ))}
                 </div>
               ) : (
@@ -214,12 +224,25 @@ export function EditStationModal({
                         <span
                           className={[
                             "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors",
-                            checked ? "bg-primary border-primary" : "border-border",
+                            checked
+                              ? "bg-primary border-primary"
+                              : "border-border",
                           ].join(" ")}
                         >
                           {checked && (
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                              <path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <svg
+                              width="8"
+                              height="8"
+                              viewBox="0 0 8 8"
+                              fill="none"
+                            >
+                              <path
+                                d="M1 4l2 2 4-4"
+                                stroke="white"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
                             </svg>
                           )}
                         </span>
@@ -236,7 +259,9 @@ export function EditStationModal({
           {/* Toggle status */}
           <div className="flex items-center justify-between py-1">
             <div>
-              <p className="text-xs font-medium text-foreground">Estação ativa</p>
+              <p className="text-xs font-medium text-foreground">
+                Estação ativa
+              </p>
               <p className="text-[11px] text-secondary-text">
                 Permite o recebimento de novos dados via IoT
               </p>

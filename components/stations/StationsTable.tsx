@@ -6,6 +6,7 @@ import { CreateStationModal } from "./CreateStationModal";
 import { EditStationModal } from "./EditStationModal";
 import { DeleteStationModal } from "./DeleteStationModal";
 import { StationDrawer } from "./StationsDrawer";
+import { StationFilters } from "./StationsFilters";
 import { ParameterIcon } from "@/components/alerts/ParameterIcon";
 import { getStations } from "@/services/stations";
 import type { PaginatedStations, StationWithParameters } from "@/types/station";
@@ -63,31 +64,45 @@ function formatDate(iso: string | null) {
   });
 }
 
-export function StationsTable({ initialData, sessionRole }: StationsTableProps) {
+export function StationsTable({
+  initialData,
+  sessionRole,
+}: StationsTableProps) {
   const [data, setData] = useState<PaginatedStations>(initialData);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editStation, setEditStation] = useState<StationWithParameters | null>(null);
-  const [deleteStation, setDeleteStation] = useState<StationWithParameters | null>(null);
-  const [selectedStationId, setSelectedStationId] = useState<number | null>(null);
+  const [editStation, setEditStation] = useState<StationWithParameters | null>(
+    null,
+  );
+  const [deleteStation, setDeleteStation] =
+    useState<StationWithParameters | null>(null);
+  const [selectedStationId, setSelectedStationId] = useState<number | null>(
+    null,
+  );
 
   const fetchPage = useCallback(
-    async (page: number, s = search) => {
+    async (page: number, s = search, st = statusFilter) => {
       setLoading(true);
       try {
-        const result = await getStations({ page, search: s });
+        const result = await getStations({ page, search: s, status: st });
         setData(result);
       } finally {
         setLoading(false);
       }
     },
-    [search],
+    [search, statusFilter],
   );
 
   function handleSearch(value: string) {
     setSearch(value);
-    fetchPage(1, value);
+    fetchPage(1, value, statusFilter);
+  }
+
+  function handleStatusFilter(value: string) {
+    setStatusFilter(value);
+    fetchPage(1, search, value);
   }
 
   const canCreate = sessionRole === "ADMIN";
@@ -106,7 +121,8 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
               Gerenciar Estações
             </h1>
             <p className="text-sm text-secondary-text mt-0.5">
-              Visualize, cadastre e gerencie as estações meteorológicas conectadas.
+              Visualize, cadastre e gerencie as estações meteorológicas
+              conectadas.
             </p>
           </div>
           {canCreate && (
@@ -120,38 +136,12 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
           )}
         </div>
 
-        {/* Busca e filtros */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-text"
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Buscar estação..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-card-background border border-border text-sm text-foreground placeholder:text-secondary-text focus:outline-none focus:border-primary transition-colors"
-            />
-          </div>
-
-          <select
-            className="px-3 py-2 rounded-lg bg-card-background border border-border text-sm text-secondary-text focus:outline-none focus:border-primary transition-colors cursor-pointer"
-          >
-            <option value="all">Status</option>
-            <option value="active">Ativa</option>
-            <option value="inactive">Inativa</option>
-          </select>
-
-          <select
-            className="px-3 py-2 rounded-lg bg-card-background border border-border text-sm text-secondary-text focus:outline-none focus:border-primary transition-colors cursor-pointer"
-          >
-            <option value="all">Grupo</option>
-          </select>
-        </div>
+        <StationFilters
+          search={search}
+          statusFilter={statusFilter}
+          onSearch={handleSearch}
+          onStatusFilter={handleStatusFilter}
+        />
 
         {/* Tabela */}
         <div className="bg-card-background border border-border rounded-xl overflow-hidden">
@@ -159,12 +149,22 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-secondary-text">
-                  <th className="text-left px-4 py-3 font-medium">Nome da Estação</th>
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">ID do Datalogger</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Localização</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Sensores</th>
+                  <th className="text-left px-4 py-3 font-medium">
+                    Nome da Estação
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">
+                    ID do Datalogger
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
+                    Localização
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
+                    Sensores
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Última Transmissão</th>
+                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">
+                    Última Transmissão
+                  </th>
                   <th className="text-right px-4 py-3 font-medium">Ações</th>
                 </tr>
               </thead>
@@ -181,7 +181,10 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
                   ))
                 ) : data.data.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-secondary-text">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-10 text-center text-sm text-secondary-text"
+                    >
                       Nenhuma estação encontrada.
                     </td>
                   </tr>
@@ -193,7 +196,9 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
                       onClick={() => setSelectedStationId(station.id)}
                     >
                       <td className="px-4 py-3">
-                        <span className="font-medium text-foreground">{station.name}</span>
+                        <span className="font-medium text-foreground">
+                          {station.name}
+                        </span>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded">
@@ -216,7 +221,10 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
                         <div className="flex items-center justify-end gap-1">
                           {canEdit && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); setEditStation(station); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditStation(station);
+                              }}
                               className="p-1.5 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"
                               title="Editar"
                             >
@@ -225,7 +233,10 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
                           )}
                           {canDelete && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); setDeleteStation(station); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteStation(station);
+                              }}
                               className="p-1.5 rounded-lg text-secondary-text hover:text-danger hover:bg-danger-dim transition-colors"
                               title="Excluir"
                             >
@@ -257,21 +268,23 @@ export function StationsTable({ initialData, sessionRole }: StationsTableProps) 
                 >
                   <ChevronLeft size={14} />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => fetchPage(n)}
-                    disabled={loading}
-                    className={[
-                      "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
-                      n === page
-                        ? "bg-primary text-white"
-                        : "border border-border text-secondary-text hover:bg-background",
-                    ].join(" ")}
-                  >
-                    {n}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (n) => (
+                    <button
+                      key={n}
+                      onClick={() => fetchPage(n)}
+                      disabled={loading}
+                      className={[
+                        "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
+                        n === page
+                          ? "bg-primary text-white"
+                          : "border border-border text-secondary-text hover:bg-background",
+                      ].join(" ")}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
                 <button
                   onClick={() => fetchPage(page + 1)}
                   disabled={page === totalPages || loading}
