@@ -1,5 +1,4 @@
 "use client";
-
 import {
   ArrowRight,
   Eye,
@@ -10,6 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -93,9 +93,13 @@ export default function Login() {
                 <label className="block text-sm font-medium text-foreground">
                   Senha
                 </label>
-                <a href="#" className="text-sm font-medium text-primary">
+                {/* Atualizado de <a href="#"> para Link real */}
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-primary hover:opacity-80 transition-opacity"
+                >
                   Esqueci minha senha
-                </a>
+                </Link>
               </div>
               <div className="relative flex items-center">
                 <div className="absolute left-4 pointer-events-none">
