@@ -59,7 +59,6 @@ export default function ForgotPassword() {
       {/* Painel direito */}
       <div className="bg-background flex justify-center items-center w-full lg:w-1/3">
         <div className="bg-transparent flex flex-col items-center w-full max-w-md px-12">
-
           {state === "form" ? (
             <>
               <div className="flex flex-col justify-center items-center mb-8">
@@ -126,11 +125,13 @@ export default function ForgotPassword() {
                   Email enviado
                 </h1>
                 <p className="text-sm font-sans font-light text-secondary-text leading-relaxed mt-2">
-                  Se o email <strong className="text-foreground">{email}</strong>{" "}
-                  estiver cadastrado, você receberá as instruções em breve.
+                  Se o email{" "}
+                  <strong className="text-foreground">{email}</strong> estiver
+                  cadastrado, você receberá as instruções em breve.
                 </p>
                 <p className="text-sm font-sans font-light text-secondary-text leading-relaxed mt-2">
-                  O link expira em <strong className="text-foreground">15 minutos</strong>.
+                  O link expira em{" "}
+                  <strong className="text-foreground">15 minutos</strong>.
                   Verifique também a caixa de spam.
                 </p>
               </div>

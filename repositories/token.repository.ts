@@ -13,7 +13,6 @@ export interface TokenPayload {
   createdAt: string;
 }
 
-
 export async function saveToken(
   hashedToken: string,
   payload: TokenPayload,
@@ -53,9 +52,7 @@ export async function deleteToken(
 }
 
 export async function invalidatePreviousToken(userId: number): Promise<void> {
-  const previousHashedToken = await redis.get<string>(
-    KEYS.activeToken(userId),
-  );
+  const previousHashedToken = await redis.get<string>(KEYS.activeToken(userId));
 
   if (previousHashedToken) {
     await redis.del(KEYS.token(previousHashedToken));

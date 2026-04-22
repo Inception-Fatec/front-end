@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
 
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  throw new Error("Credenciais do Gmail (EMAIL_USER ou EMAIL_PASS) não definidas.");
+  throw new Error(
+    "Credenciais do Gmail (EMAIL_USER ou EMAIL_PASS) não definidas.",
+  );
 }
 
 if (!process.env.NEXT_PUBLIC_APP_URL) {
@@ -62,7 +64,10 @@ export async function sendPasswordResetEmail(
       `,
     });
   } catch (error) {
-    console.error("[mail] Erro ao enviar email de reset via Nodemailer:", error);
+    console.error(
+      "[mail] Erro ao enviar email de reset via Nodemailer:",
+      error,
+    );
     throw new Error("Erro ao enviar email de redefinição de senha.");
   }
 }
@@ -85,6 +90,9 @@ export async function sendPasswordChangedEmail(email: string): Promise<void> {
       `,
     });
   } catch (error) {
-    console.error("[mail] Erro ao enviar email de confirmação via Nodemailer:", error);
+    console.error(
+      "[mail] Erro ao enviar email de confirmação via Nodemailer:",
+      error,
+    );
   }
 }

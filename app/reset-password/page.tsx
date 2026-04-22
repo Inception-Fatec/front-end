@@ -1,5 +1,15 @@
 "use client";
-import {ArrowLeft,ArrowRight,CheckCircle,Eye,EyeOff,Leaf,LockKeyhole,ShieldCheck,XCircle} from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Leaf,
+  LockKeyhole,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -171,8 +181,7 @@ function ResetPasswordForm() {
             Senha redefinida
           </h1>
           <p className="text-sm font-sans font-light text-secondary-text leading-relaxed mt-2">
-            Sua senha foi alterada com sucesso. Redirecionando para o
-            login...
+            Sua senha foi alterada com sucesso. Redirecionando para o login...
           </p>
           <Link
             href="/login"
@@ -246,7 +255,9 @@ export default function ResetPassword() {
         </div>
       </div>
 
-      <div className="bg-background flex justify-center items-center w-full lg:w-1/3">        <Suspense fallback={null}>
+      <div className="bg-background flex justify-center items-center w-full lg:w-1/3">
+        {" "}
+        <Suspense fallback={null}>
           <ResetPasswordForm />
         </Suspense>
       </div>
