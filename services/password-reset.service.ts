@@ -11,6 +11,7 @@ export async function requestPasswordReset(
   email: string,
   ip: string,
 ): Promise<PasswordResetServiceResult> {
+  /*
   const ipLimit = await checkRateLimit(`ip:${ip}`);
   if (!ipLimit.allowed) {
     return {
@@ -25,7 +26,7 @@ export async function requestPasswordReset(
       success: false,
       error: `Muitas tentativas. Tente novamente em ${Math.ceil((emailLimit.retryAfterSeconds ?? 900) / 60)} minutos.`,
     };
-  }
+  } */
   const user = await findUserByEmail(email);
   if (!user) {
     return { success: true };
