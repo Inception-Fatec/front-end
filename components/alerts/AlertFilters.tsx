@@ -18,9 +18,8 @@ export function AlertFilters({
   severityFilter,
   onSearch,
   onParameterTypeFilter,
-  onSeverityFilter
+  onSeverityFilter,
 }: AlertFiltersProps) {
-
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       <div className="relative flex-1">

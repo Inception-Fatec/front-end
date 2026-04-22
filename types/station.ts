@@ -14,7 +14,15 @@ export type Station = {
   status: boolean;
 };
 
-export type CreateStation = Omit<Station, "id" | "created_at" | "last_measurement" | "address" | "latitude" | "longitude"> & {
+export type CreateStation = Omit<
+  Station,
+  | "id"
+  | "created_at"
+  | "last_measurement"
+  | "address"
+  | "latitude"
+  | "longitude"
+> & {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
