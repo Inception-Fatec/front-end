@@ -41,7 +41,6 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-
 function NavLink({
   item,
   isActive,

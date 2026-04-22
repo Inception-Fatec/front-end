@@ -16,7 +16,9 @@ export function AlertsTabs({ sessionRole }: AlertsTabsProps) {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Gerenciar Alertas</h1>
+          <h1 className="text-xl font-bold text-foreground">
+            Gerenciar Alertas
+          </h1>
           <p className="text-sm text-secondary-text mt-0.5">
             {activeTab === "rules"
               ? "Administre os alertas do sistema e suas configurações."

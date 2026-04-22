@@ -25,10 +25,16 @@ export function CreateAlertModal({
   const [severity, setSeverity] = useState<AlertSeverity | "">("");
   const [operator, setOperator] = useState<AlertOperator | "">("");
   const [value, setValue] = useState(0);
-  const [parameterType, setParameterType] = useState<ParameterType | null>(null);
+  const [parameterType, setParameterType] = useState<ParameterType | null>(
+    null,
+  );
   const [parameters, setParameters] = useState<number[]>([]);
-  const [selectedStationIds, setSelectedStationIds] = useState<Set<number>>(new Set());
-  const [validStations, setValidStations] = useState<StationWithParameters[]>([]);
+  const [selectedStationIds, setSelectedStationIds] = useState<Set<number>>(
+    new Set(),
+  );
+  const [validStations, setValidStations] = useState<StationWithParameters[]>(
+    [],
+  );
   const [stationSearch, setStationSearch] = useState("");
   const [showStationDropdown, setShowStationDropdown] = useState(false);
   const [status, setStatus] = useState(true);
@@ -50,7 +56,8 @@ export function CreateAlertModal({
   };
 
   const handleParameterTypeChange = (parameterTypeId: number) => {
-    const selected = parameterTypes.find((t) => t.id === parameterTypeId) ?? null;
+    const selected =
+      parameterTypes.find((t) => t.id === parameterTypeId) ?? null;
     setParameterType(selected);
     setSelectedStationIds(new Set());
     setParameters([]);
@@ -58,7 +65,7 @@ export function CreateAlertModal({
 
     if (selected) {
       const valid = stations.filter((station) =>
-        station.parameters.some((p) => p.id_parameter_type === parameterTypeId)
+        station.parameters.some((p) => p.id_parameter_type === parameterTypeId),
       );
       setValidStations(valid);
     } else {
@@ -99,7 +106,15 @@ export function CreateAlertModal({
 
     setLoading(true);
     try {
-      await createAlert({ name, message, severity, operator, value, status, parameters });
+      await createAlert({
+        name,
+        message,
+        severity,
+        operator,
+        value,
+        status,
+        parameters,
+      });
       onSuccess();
       onClose();
     } catch (err) {
@@ -110,7 +125,7 @@ export function CreateAlertModal({
   }
 
   const filteredStations = validStations.filter((s) =>
-    s.name.toLowerCase().includes(stationSearch.toLowerCase())
+    s.name.toLowerCase().includes(stationSearch.toLowerCase()),
   );
 
   return (
@@ -134,7 +149,9 @@ export function CreateAlertModal({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Nome do Alerta</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Nome do Alerta
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -144,7 +161,9 @@ export function CreateAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Mensagem</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Mensagem
+            </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -154,10 +173,14 @@ export function CreateAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Parâmetro</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Parâmetro
+            </label>
             <select
               value={parameterType?.id ?? ""}
-              onChange={(e) => handleParameterTypeChange(Number(e.target.value))}
+              onChange={(e) =>
+                handleParameterTypeChange(Number(e.target.value))
+              }
               className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
             >
               <option value="">Selecionar parâmetro</option>
@@ -170,7 +193,9 @@ export function CreateAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Estações</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Estações
+            </label>
 
             <div className="relative">
               <input
@@ -181,7 +206,9 @@ export function CreateAlertModal({
                   setShowStationDropdown(true);
                 }}
                 onFocus={() => setShowStationDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStationDropdown(false), 150)}
+                onBlur={() =>
+                  setTimeout(() => setShowStationDropdown(false), 150)
+                }
                 placeholder="Buscar estação..."
                 disabled={!parameterType}
                 className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-secondary-text focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -241,7 +268,9 @@ export function CreateAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Severidade</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Severidade
+            </label>
             <select
               value={severity}
               onChange={(e) => setSeverity(e.target.value as AlertSeverity)}
@@ -258,7 +287,9 @@ export function CreateAlertModal({
 
           <div className="flex flex-row gap-4 max-[500px]:flex-col">
             <div className="space-y-1.5 w-1/2 max-[500px]:w-full">
-              <label className="text-xs font-medium text-secondary-text">Condição</label>
+              <label className="text-xs font-medium text-secondary-text">
+                Condição
+              </label>
               <select
                 value={operator}
                 onChange={(e) => setOperator(e.target.value as AlertOperator)}
@@ -274,7 +305,9 @@ export function CreateAlertModal({
             </div>
 
             <div className="space-y-1.5 w-1/2 max-[500px]:w-full">
-              <label className="text-xs font-medium text-secondary-text">Valor</label>
+              <label className="text-xs font-medium text-secondary-text">
+                Valor
+              </label>
               <div className="h-9 flex rounded-lg border border-border bg-background focus-within:border-primary transition-colors overflow-hidden">
                 <input
                   type="number"

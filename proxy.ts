@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 type UserRole = "ADMIN" | "OPERATOR" | "USER";
 
 const routePermissions: Record<string, UserRole[]> = {
-  "/admin":     ["ADMIN"],
+  "/admin": ["ADMIN"],
   "/operacoes": ["ADMIN", "OPERATOR"],
   "/dashboard": ["ADMIN", "OPERATOR", "USER"],
 };
