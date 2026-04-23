@@ -12,6 +12,7 @@ import {
   Users,
   LogOut,
   X,
+  Settings2,
 } from "lucide-react";
 import type { UserRole } from "@/types/api";
 
@@ -30,6 +31,7 @@ interface SidebarProps {
 const NAV_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Radio, label: "Estações", href: "/dashboard/estacoes" },
+  { icon: Settings2, label: "Parâmetros", href: "/dashboard/parametros" },
   { icon: Bell, label: "Alertas", href: "/dashboard/alertas" },
   { icon: BarChart3, label: "Relatórios", href: "/dashboard/relatorios" },
   { icon: BookOpen, label: "Tutorial", href: "/dashboard/tutorial" },

@@ -16,6 +16,7 @@ interface HeaderProps {
 const BREADCRUMB_MAP: Record<string, string> = {
   "/dashboard": "Live Monitor",
   "/dashboard/estacoes": "Estações",
+  "/dashboard/parametros": "Parâmetros",
   "/dashboard/alertas": "Alertas",
   "/dashboard/relatorios": "Relatórios",
   "/dashboard/tutorial": "Tutorial",
