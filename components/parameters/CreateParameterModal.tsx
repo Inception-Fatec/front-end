@@ -32,14 +32,19 @@ export function CreateParameterModal({
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/stations?limit=all", { cache: "no-store" });
+        const res = await fetch("/api/stations?limit=all", {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const payload = await res.json();
         const rows = Array.isArray(payload?.data) ? payload.data : [];
         const mapped = Array.isArray(rows)
           ? rows
-              .filter((item): item is { id: number; name: string } =>
-                typeof item?.id === "number" && typeof item?.name === "string" && item?.status === true,
+              .filter(
+                (item): item is { id: number; name: string } =>
+                  typeof item?.id === "number" &&
+                  typeof item?.name === "string" &&
+                  item?.status === true,
               )
               .map((item) => ({ id: item.id, name: item.name }))
           : [];
@@ -54,7 +59,9 @@ export function CreateParameterModal({
     setError(null);
 
     if (!name.trim() || !unit.trim() || !symbol.trim()) {
-      return setError("Preencha os campos obrigatórios (Nome, Unidade, Símbolo).");
+      return setError(
+        "Preencha os campos obrigatórios (Nome, Unidade, Símbolo).",
+      );
     }
 
     if (selectedStationIds.length === 0) {
@@ -101,7 +108,9 @@ export function CreateParameterModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">Novo Parâmetro</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            Novo Parâmetro
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"

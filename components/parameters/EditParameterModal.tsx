@@ -53,8 +53,11 @@ export function EditParameterModal({
 
         const mappedStations = Array.isArray(stationRows)
           ? stationRows
-              .filter((item): item is { id: number; name: string } =>
-                typeof item?.id === "number" && typeof item?.name === "string" && item?.status === true,
+              .filter(
+                (item): item is { id: number; name: string } =>
+                  typeof item?.id === "number" &&
+                  typeof item?.name === "string" &&
+                  item?.status === true,
               )
               .map((item) => ({ id: item.id, name: item.name }))
           : [];
@@ -66,7 +69,8 @@ export function EditParameterModal({
         if (Array.isArray(parameterData?.currentStationIds)) {
           setSelectedStationIds(
             parameterData.currentStationIds.filter(
-              (value: unknown): value is number => typeof value === "number" && Number.isFinite(value),
+              (value: unknown): value is number =>
+                typeof value === "number" && Number.isFinite(value),
             ),
           );
         } else if (typeof parameterData?.currentStationId === "number") {
@@ -90,7 +94,9 @@ export function EditParameterModal({
     setError(null);
 
     if (!name.trim() || !unit.trim() || !symbol.trim()) {
-      return setError("Preencha os campos obrigatórios (Nome, Unidade, Símbolo).");
+      return setError(
+        "Preencha os campos obrigatórios (Nome, Unidade, Símbolo).",
+      );
     }
 
     if (selectedStationIds.length === 0) {
@@ -122,7 +128,9 @@ export function EditParameterModal({
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar parâmetro");
+      setError(
+        err instanceof Error ? err.message : "Erro ao atualizar parâmetro",
+      );
     } finally {
       setLoading(false);
     }
@@ -138,7 +146,9 @@ export function EditParameterModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">Editar Parâmetro</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            Editar Parâmetro
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"

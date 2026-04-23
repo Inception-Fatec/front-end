@@ -15,23 +15,29 @@ export default async function ParametrosPage() {
   try {
     const { supabaseAdmin } = await import("@/lib/supabase");
 
-    const [{ data, count, error }, { count: active, error: activeError }, { count: uniqueCount, error: uniqueError }] =
-      await Promise.all([
-        supabaseAdmin
-          .from("parameter_types")
-          .select("id, name, unit, symbol, factor_value, offset_value, json_name", {
+    const [
+      { data, count, error },
+      { count: active, error: activeError },
+      { count: uniqueCount, error: uniqueError },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("parameter_types")
+        .select(
+          "id, name, unit, symbol, factor_value, offset_value, json_name",
+          {
             count: "exact",
-          })
-          .order("id", { ascending: true })
-          .range(0, 4),
-        supabaseAdmin
-          .from("parameters")
-          .select("id", { count: "exact", head: true })
-          .eq("status", true),
-        supabaseAdmin
-          .from("parameter_types")
-          .select("id", { count: "exact", head: true }),
-      ]);
+          },
+        )
+        .order("id", { ascending: true })
+        .range(0, 4),
+      supabaseAdmin
+        .from("parameters")
+        .select("id", { count: "exact", head: true })
+        .eq("status", true),
+      supabaseAdmin
+        .from("parameter_types")
+        .select("id", { count: "exact", head: true }),
+    ]);
 
     if (error) throw error;
     if (activeError) throw activeError;
@@ -43,32 +49,41 @@ export default async function ParametrosPage() {
     const rows = (data ?? []) as PaginatedParameters["data"];
     const parameterTypeIds = rows.map((row: { id: number }) => row.id);
 
-    const linkedStationsByType = new Map<number, { id: number; name: string }[]>();
+    const linkedStationsByType = new Map<
+      number,
+      { id: number; name: string }[]
+    >();
 
     parameterTypeIds.forEach((parameterTypeId: number) => {
       linkedStationsByType.set(parameterTypeId, []);
     });
 
     if (parameterTypeIds.length > 0) {
-      const { data: parameterLinks, error: parameterLinksError } = await supabaseAdmin
-        .from("parameters")
-        .select("id_parameter_type,id_station")
-        .in("id_parameter_type", parameterTypeIds)
-        .eq("status", true);
+      const { data: parameterLinks, error: parameterLinksError } =
+        await supabaseAdmin
+          .from("parameters")
+          .select("id_parameter_type,id_station")
+          .in("id_parameter_type", parameterTypeIds)
+          .eq("status", true);
 
       if (parameterLinksError) throw parameterLinksError;
 
       const stationIds = Array.from(
-        new Set((parameterLinks ?? []).map((link: { id_station: number }) => link.id_station)),
+        new Set(
+          (parameterLinks ?? []).map(
+            (link: { id_station: number }) => link.id_station,
+          ),
+        ),
       );
 
       const stationById = new Map<number, { id: number; name: string }>();
 
       if (stationIds.length > 0) {
-        const { data: stationRows, error: stationRowsError } = await supabaseAdmin
-          .from("stations")
-          .select("id,name")
-          .in("id", stationIds);
+        const { data: stationRows, error: stationRowsError } =
+          await supabaseAdmin
+            .from("stations")
+            .select("id,name")
+            .in("id", stationIds);
 
         if (stationRowsError) throw stationRowsError;
 
@@ -77,15 +92,21 @@ export default async function ParametrosPage() {
         });
       }
 
-      (parameterLinks ?? []).forEach((link: { id_parameter_type: number; id_station: number }) => {
-        const station = stationById.get(link.id_station);
-        if (!station) return;
+      (parameterLinks ?? []).forEach(
+        (link: { id_parameter_type: number; id_station: number }) => {
+          const station = stationById.get(link.id_station);
+          if (!station) return;
 
-        const current = linkedStationsByType.get(link.id_parameter_type) ?? [];
-        if (!current.some((existing) => existing.id === station.id)) {
-          linkedStationsByType.set(link.id_parameter_type, [...current, station]);
-        }
-      });
+          const current =
+            linkedStationsByType.get(link.id_parameter_type) ?? [];
+          if (!current.some((existing) => existing.id === station.id)) {
+            linkedStationsByType.set(link.id_parameter_type, [
+              ...current,
+              station,
+            ]);
+          }
+        },
+      );
     }
 
     initialData = {

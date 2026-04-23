@@ -83,7 +83,9 @@ export function StationsMultiSelect({
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-wrap gap-1.5">
               {selectedOptions.length === 0 ? (
-                <span className="text-sm text-secondary-text">{placeholder}</span>
+                <span className="text-sm text-secondary-text">
+                  {placeholder}
+                </span>
               ) : (
                 selectedOptions.map((option) => (
                   <span

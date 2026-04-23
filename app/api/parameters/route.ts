@@ -62,27 +62,36 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "id inválido" }, { status: 400 });
       }
 
-      const { data: parameterType, error: parameterTypeError } = await supabaseAdmin
-        .from("parameter_types")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+      const { data: parameterType, error: parameterTypeError } =
+        await supabaseAdmin
+          .from("parameter_types")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
 
       if (parameterTypeError) throw parameterTypeError;
       if (!parameterType) {
-        return NextResponse.json({ error: "Tipo de parâmetro não encontrado" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Tipo de parâmetro não encontrado" },
+          { status: 404 },
+        );
       }
 
-      const { data: parameterRows, error: parameterRowsError } = await supabaseAdmin
-        .from("parameters")
-        .select("id_station")
-        .eq("id_parameter_type", id)
-        .eq("status", true);
+      const { data: parameterRows, error: parameterRowsError } =
+        await supabaseAdmin
+          .from("parameters")
+          .select("id_station")
+          .eq("id_parameter_type", id)
+          .eq("status", true);
 
       if (parameterRowsError) throw parameterRowsError;
 
       const stationIds = Array.from(
-        new Set((parameterRows ?? []).map((row: { id_station: number }) => row.id_station)),
+        new Set(
+          (parameterRows ?? []).map(
+            (row: { id_station: number }) => row.id_station,
+          ),
+        ),
       ) as number[];
 
       if (stationIds.length === 0) {
@@ -110,10 +119,12 @@ export async function GET(req: NextRequest) {
           data: parameterType as ParameterType,
           currentStationIds: sortedStationIds,
           currentStationId: sortedStationIds[0] ?? null,
-          currentStations: (stationRows ?? []).map((station: { id: number; name: string }) => ({
-            id: station.id,
-            name: station.name,
-          })),
+          currentStations: (stationRows ?? []).map(
+            (station: { id: number; name: string }) => ({
+              id: station.id,
+              name: station.name,
+            }),
+          ),
         },
         { status: 200 },
       );
@@ -128,14 +139,18 @@ export async function GET(req: NextRequest) {
     if (stationIdRaw && stationIdRaw !== "all") {
       const stationId = Number(stationIdRaw);
       if (!Number.isFinite(stationId)) {
-        return NextResponse.json({ error: "stationId inválido" }, { status: 400 });
+        return NextResponse.json(
+          { error: "stationId inválido" },
+          { status: 400 },
+        );
       }
 
-      const { data: parameterRows, error: parameterRowsError } = await supabaseAdmin
-        .from("parameters")
-        .select("id_parameter_type")
-        .eq("id_station", stationId)
-        .eq("status", true);
+      const { data: parameterRows, error: parameterRowsError } =
+        await supabaseAdmin
+          .from("parameters")
+          .select("id_parameter_type")
+          .eq("id_station", stationId)
+          .eq("status", true);
 
       if (parameterRowsError) throw parameterRowsError;
 
@@ -196,36 +211,42 @@ export async function GET(req: NextRequest) {
             page,
             limit: isAll ? "all" : limit,
             total: count,
-            totalPages: isAll
-              ? 1
-              : Math.ceil((count || 0) / (limit || 1)),
+            totalPages: isAll ? 1 : Math.ceil((count || 0) / (limit || 1)),
           },
         },
         { status: 200 },
       );
     }
 
-    const parameterTypeIds = parameterTypeRows.map((parameterType) => parameterType.id);
+    const parameterTypeIds = parameterTypeRows.map(
+      (parameterType) => parameterType.id,
+    );
 
-    const { data: parameterLinks, error: parameterLinksError } = await supabaseAdmin
-      .from("parameters")
-      .select("id_parameter_type,id_station")
-      .in("id_parameter_type", parameterTypeIds)
-      .eq("status", true);
+    const { data: parameterLinks, error: parameterLinksError } =
+      await supabaseAdmin
+        .from("parameters")
+        .select("id_parameter_type,id_station")
+        .in("id_parameter_type", parameterTypeIds)
+        .eq("status", true);
 
     if (parameterLinksError) throw parameterLinksError;
 
     const stationIds = Array.from(
-      new Set((parameterLinks ?? []).map((link: ParameterStationLink) => link.id_station)),
+      new Set(
+        (parameterLinks ?? []).map(
+          (link: ParameterStationLink) => link.id_station,
+        ),
+      ),
     ) as number[];
 
     let stationRows: StationSummary[] = [];
 
     if (stationIds.length > 0) {
-      const { data: fetchedStations, error: fetchedStationsError } = await supabaseAdmin
-        .from("stations")
-        .select("id,name")
-        .in("id", stationIds);
+      const { data: fetchedStations, error: fetchedStationsError } =
+        await supabaseAdmin
+          .from("stations")
+          .select("id,name")
+          .in("id", stationIds);
 
       if (fetchedStationsError) throw fetchedStationsError;
       stationRows = (fetchedStations ?? []) as StationSummary[];
@@ -272,42 +293,67 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   try {
-    const body: Omit<ParameterType, "id"> & { stationIds?: number[]; stationId?: number } = await req.json();
-    const { name, unit, symbol, factor_value, offset_value, json_name, stationIds, stationId } = body;
-
+    const body: Omit<ParameterType, "id"> & {
+      stationIds?: number[];
+      stationId?: number;
+    } = await req.json();
+    const {
+      name,
+      unit,
+      symbol,
+      factor_value,
+      offset_value,
+      json_name,
+      stationIds,
+      stationId,
+    } = body;
 
     if (!name || !unit || !symbol) {
-      return NextResponse.json({ error: "Nome, unidade e símbolo são obrigatórios." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Nome, unidade e símbolo são obrigatórios." },
+        { status: 400 },
+      );
     }
 
     const normalizedStationIds = Array.from(
       new Set(
-        (Array.isArray(stationIds) ? stationIds : Number.isFinite(stationId) ? [stationId as number] : [])
-          .filter((value): value is number => Number.isFinite(value)),
+        (Array.isArray(stationIds)
+          ? stationIds
+          : Number.isFinite(stationId)
+            ? [stationId as number]
+            : []
+        ).filter((value): value is number => Number.isFinite(value)),
       ),
     );
 
     if (normalizedStationIds.length === 0) {
-      return NextResponse.json({ error: "Selecione ao menos uma estação." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Selecione ao menos uma estação." },
+        { status: 400 },
+      );
     }
 
     const normalizedName = name.trim();
 
-    const { data: existingByName, error: existingByNameError } = await supabaseAdmin
-      .from("parameter_types")
-      .select("id")
-      .ilike("name", normalizedName);
+    const { data: existingByName, error: existingByNameError } =
+      await supabaseAdmin
+        .from("parameter_types")
+        .select("id")
+        .ilike("name", normalizedName);
 
     if (existingByNameError) throw existingByNameError;
 
-    const existingIds = (existingByName ?? []).map((row: { id: number }) => row.id);
+    const existingIds = (existingByName ?? []).map(
+      (row: { id: number }) => row.id,
+    );
 
     if (existingIds.length > 0) {
-      const { count: activeWithSameNameCount, error: activeWithSameNameError } = await supabaseAdmin
-        .from("parameters")
-        .select("id", { count: "exact", head: true })
-        .in("id_parameter_type", existingIds)
-        .eq("status", true);
+      const { count: activeWithSameNameCount, error: activeWithSameNameError } =
+        await supabaseAdmin
+          .from("parameters")
+          .select("id", { count: "exact", head: true })
+          .in("id_parameter_type", existingIds)
+          .eq("status", true);
 
       if (activeWithSameNameError) throw activeWithSameNameError;
 
@@ -319,16 +365,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { data: validStations, error: validStationError } = await supabaseAdmin
-      .from("stations")
-      .select("id")
-      .in("id", normalizedStationIds)
-      .eq("status", true)
-      ;
-
+    const { data: validStations, error: validStationError } =
+      await supabaseAdmin
+        .from("stations")
+        .select("id")
+        .in("id", normalizedStationIds)
+        .eq("status", true);
     if (validStationError) throw validStationError;
-    if (!validStations || validStations.length !== normalizedStationIds.length) {
-      return NextResponse.json({ error: "Uma ou mais estações são inválidas ou inativas." }, { status: 400 });
+    if (
+      !validStations ||
+      validStations.length !== normalizedStationIds.length
+    ) {
+      return NextResponse.json(
+        { error: "Uma ou mais estações são inválidas ou inativas." },
+        { status: 400 },
+      );
     }
 
     const { data, error } = await supabaseAdmin
@@ -357,19 +408,23 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
 
-    const { error: linkError } = await supabaseAdmin
-      .from("parameters")
-      .insert(
-        normalizedStationIds.map((id_station) => ({
-          id_station,
-          id_parameter_type: data.id,
-          status: true,
-        })),
-      );
+    const { error: linkError } = await supabaseAdmin.from("parameters").insert(
+      normalizedStationIds.map((id_station) => ({
+        id_station,
+        id_parameter_type: data.id,
+        status: true,
+      })),
+    );
 
     if (linkError) {
-      console.error("Supabase error ao vincular parâmetro à estação:", linkError);
-      return NextResponse.json({ error: "Parâmetro criado, mas falhou ao vincular estação." }, { status: 500 });
+      console.error(
+        "Supabase error ao vincular parâmetro à estação:",
+        linkError,
+      );
+      return NextResponse.json(
+        { error: "Parâmetro criado, mas falhou ao vincular estação." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json(data as ParameterType, { status: 201 });
@@ -389,8 +444,22 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   try {
-    const body: Partial<Omit<ParameterType, "id">> & { id: number; stationIds?: number[]; stationId?: number | null } = await req.json();
-    const { id, name, unit, symbol, factor_value, offset_value, json_name, stationIds, stationId } = body;
+    const body: Partial<Omit<ParameterType, "id">> & {
+      id: number;
+      stationIds?: number[];
+      stationId?: number | null;
+    } = await req.json();
+    const {
+      id,
+      name,
+      unit,
+      symbol,
+      factor_value,
+      offset_value,
+      json_name,
+      stationIds,
+      stationId,
+    } = body;
 
     if (!id)
       return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
@@ -399,31 +468,43 @@ export async function PUT(req: NextRequest) {
       stationIds !== undefined
         ? Array.from(
             new Set(
-              stationIds.filter((value): value is number => Number.isFinite(value)),
+              stationIds.filter((value): value is number =>
+                Number.isFinite(value),
+              ),
             ),
           )
         : stationId !== undefined
-          ? (stationId === null ? [] : [stationId].filter((value): value is number => Number.isFinite(value)))
+          ? stationId === null
+            ? []
+            : [stationId].filter((value): value is number =>
+                Number.isFinite(value),
+              )
           : undefined;
 
     if (normalizedStationIds !== undefined && normalizedStationIds.length > 0) {
-      const { data: validStations, error: validStationError } = await supabaseAdmin
-        .from("stations")
-        .select("id")
-        .in("id", normalizedStationIds)
-        .eq("status", true)
-        ;
-
+      const { data: validStations, error: validStationError } =
+        await supabaseAdmin
+          .from("stations")
+          .select("id")
+          .in("id", normalizedStationIds)
+          .eq("status", true);
       if (validStationError) throw validStationError;
 
-      if (!validStations || validStations.length !== normalizedStationIds.length) {
-        return NextResponse.json({ error: "Uma ou mais estações são inválidas ou inativas." }, { status: 400 });
+      if (
+        !validStations ||
+        validStations.length !== normalizedStationIds.length
+      ) {
+        return NextResponse.json(
+          { error: "Uma ou mais estações são inválidas ou inativas." },
+          { status: 400 },
+        );
       }
     }
 
     const sanitizedName = typeof name === "string" ? name.trim() : undefined;
     const sanitizedUnit = typeof unit === "string" ? unit.trim() : undefined;
-    const sanitizedSymbol = typeof symbol === "string" ? symbol.trim() : undefined;
+    const sanitizedSymbol =
+      typeof symbol === "string" ? symbol.trim() : undefined;
 
     const { data, error } = await supabaseAdmin
       .from("parameter_types")
@@ -453,16 +534,23 @@ export async function PUT(req: NextRequest) {
       );
 
     if (normalizedStationIds !== undefined) {
-      const { data: existingLinks, error: existingLinksError } = await supabaseAdmin
-        .from("parameters")
-        .select("id,id_station,status")
-        .eq("id_parameter_type", id);
+      const { data: existingLinks, error: existingLinksError } =
+        await supabaseAdmin
+          .from("parameters")
+          .select("id,id_station,status")
+          .eq("id_parameter_type", id);
 
       if (existingLinksError) throw existingLinksError;
 
-      const currentLinks = (existingLinks ?? []) as Array<{ id: number; id_station: number; status: boolean }>;
+      const currentLinks = (existingLinks ?? []) as Array<{
+        id: number;
+        id_station: number;
+        status: boolean;
+      }>;
       const desiredStationIdSet = new Set(normalizedStationIds);
-      const currentStationIdSet = new Set(currentLinks.map((row) => row.id_station));
+      const currentStationIdSet = new Set(
+        currentLinks.map((row) => row.id_station),
+      );
 
       const rowsToInsert = normalizedStationIds
         .filter((id_station) => !currentStationIdSet.has(id_station))
@@ -510,6 +598,9 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(data as ParameterType, { status: 200 });
   } catch (error) {
     console.error("Erro no PUT parameter_types:", error);
-    return NextResponse.json({ error: "Erro interno ao atualizar." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno ao atualizar." },
+      { status: 500 },
+    );
   }
 }

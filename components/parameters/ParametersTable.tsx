@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Settings } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+  Settings,
+} from "lucide-react";
 import { getParameters } from "@/services/parameters";
 import { ParametersFilters } from "./ParametersFilters";
 import { CreateParameterModal } from "./CreateParameterModal";
@@ -21,7 +27,11 @@ interface ParametersTableProps {
 
 const PAGE_SIZE = 5;
 
-export function ParametersTable({ initialData, activeCount, uniqueActiveCount }: ParametersTableProps) {
+export function ParametersTable({
+  initialData,
+  activeCount,
+  uniqueActiveCount,
+}: ParametersTableProps) {
   const [data, setData] = useState<PaginatedParameters>(initialData);
   const [search, setSearch] = useState("");
   const [stationFilter, setStationFilter] = useState("all");
@@ -34,16 +44,19 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/stations?limit=all", { cache: "no-store" });
+        const res = await fetch("/api/stations?limit=all", {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const payload = await res.json();
         const rows = Array.isArray(payload?.data) ? payload.data : [];
         const mapped = Array.isArray(rows)
           ? rows
-              .filter((item): item is { id: number; name: string } =>
-                typeof item?.id === "number" &&
-                typeof item?.name === "string" &&
-                item?.status === true,
+              .filter(
+                (item): item is { id: number; name: string } =>
+                  typeof item?.id === "number" &&
+                  typeof item?.name === "string" &&
+                  item?.status === true,
               )
               .map((item) => ({ id: item.id, name: item.name }))
           : [];
@@ -114,12 +127,16 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
                 <span className="text-4xl leading-none font-bold text-primary">
                   {activeCount}
                 </span>
-                <span className="text-sm text-secondary-text">Parâmetros Ativos</span>
+                <span className="text-sm text-secondary-text">
+                  Parâmetros Ativos
+                </span>
                 <span className="ml-3 flex items-baseline gap-2">
                   <span className="text-4xl leading-none font-bold text-primary">
                     {uniqueActiveCount}
                   </span>
-                  <span className="text-sm text-secondary-text">Parâmetros Únicos</span>
+                  <span className="text-sm text-secondary-text">
+                    Parâmetros Únicos
+                  </span>
                 </span>
               </div>
             </div>
@@ -151,7 +168,9 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-secondary-text">
-                  <th className="text-left px-4 py-3 font-medium">Nome do Parâmetro</th>
+                  <th className="text-left px-4 py-3 font-medium">
+                    Nome do Parâmetro
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Unidade</th>
                   <th className="text-left px-4 py-3 font-medium">Símbolo</th>
                   <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">
@@ -163,7 +182,9 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
                   <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">
                     Nome JSON
                   </th>
-                  <th className="text-left px-4 py-3 font-medium">Estação Vinculada</th>
+                  <th className="text-left px-4 py-3 font-medium">
+                    Estação Vinculada
+                  </th>
                   <th className="text-right px-4 py-3 font-medium">Ações</th>
                 </tr>
               </thead>
@@ -214,8 +235,11 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
                         {param.json_name}
                       </td>
                       <td className="px-4 py-3 text-secondary-text">
-                        {param.linked_stations && param.linked_stations.length > 0
-                          ? param.linked_stations.map((station) => station.name).join(", ")
+                        {param.linked_stations &&
+                        param.linked_stations.length > 0
+                          ? param.linked_stations
+                              .map((station) => station.name)
+                              .join(", ")
                           : "Sem vínculo"}
                       </td>
                       <td className="px-4 py-3">
@@ -273,7 +297,8 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
                 <button
                   onClick={() => fetchPage(data.pagination.page + 1)}
                   disabled={
-                    data.pagination.page === data.pagination.totalPages || loading
+                    data.pagination.page === data.pagination.totalPages ||
+                    loading
                   }
                   className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
@@ -292,24 +317,37 @@ export function ParametersTable({ initialData, activeCount, uniqueActiveCount }:
                 <Settings size={18} className="text-primary mt-1 shrink-0" />
                 <div className="space-y-3">
                   <h3 className="text-2xl font-semibold text-foreground leading-tight">
-                Guia de Padronização
+                    Guia de Padronização
                   </h3>
                   <p className="text-sm md:text-base text-secondary-text leading-relaxed max-w-2xl">
-                    Ao criar novos parâmetros, certifique-se de utilizar unidades de medida padrão (SI) para
-                    garantir a compatibilidade entre diferentes sistemas de visualização.
+                    Ao criar novos parâmetros, certifique-se de utilizar
+                    unidades de medida padrão (SI) para garantir a
+                    compatibilidade entre diferentes sistemas de visualização.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">Temperatura:</span> Graus Celsius (°C)
+                      <span className="font-medium text-foreground">
+                        Temperatura:
+                      </span>{" "}
+                      Graus Celsius (°C)
                     </div>
                     <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">Pressão:</span> Hectopascal (hPa)
+                      <span className="font-medium text-foreground">
+                        Pressão:
+                      </span>{" "}
+                      Hectopascal (hPa)
                     </div>
                     <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">Umidade:</span> Percentagem (%)
+                      <span className="font-medium text-foreground">
+                        Umidade:
+                      </span>{" "}
+                      Percentagem (%)
                     </div>
                     <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">Vento:</span> Metros por segundo (m/s)
+                      <span className="font-medium text-foreground">
+                        Vento:
+                      </span>{" "}
+                      Metros por segundo (m/s)
                     </div>
                   </div>
                 </div>
