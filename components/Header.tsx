@@ -30,7 +30,6 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
   const { alerts, isLoading } = useDashboard();
 
-  // Override local de "seen" — vira mutation quando a API estiver pronta
   const [localAlerts, setLocalAlerts] = useState<RecentAlert[] | null>(null);
   const displayAlerts = localAlerts ?? alerts;
   const unreadCount = displayAlerts.filter((a) => !a.seen).length;
