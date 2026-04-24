@@ -369,8 +369,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin
         .from("stations")
         .select("id")
-        .in("id", normalizedStationIds)
-        .eq("status", true);
+        .in("id", normalizedStationIds);
     if (validStationError) throw validStationError;
     if (
       !validStations ||
@@ -486,8 +485,7 @@ export async function PUT(req: NextRequest) {
         await supabaseAdmin
           .from("stations")
           .select("id")
-          .in("id", normalizedStationIds)
-          .eq("status", true);
+          .in("id", normalizedStationIds);
       if (validStationError) throw validStationError;
 
       if (
