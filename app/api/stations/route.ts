@@ -236,7 +236,7 @@ export async function GET(req: NextRequest) {
             `,
         { count: "exact" },
       )
-      .order("created_at", { ascending: false });
+      .order("name", { ascending: true });
 
     if (search) {
       query = query.ilike("name", `%${search}%`);

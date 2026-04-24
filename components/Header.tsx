@@ -16,6 +16,7 @@ interface HeaderProps {
 const BREADCRUMB_MAP: Record<string, string> = {
   "/dashboard": "Live Monitor",
   "/dashboard/estacoes": "Estações",
+  "/dashboard/parametros": "Parâmetros",
   "/dashboard/alertas": "Alertas",
   "/dashboard/relatorios": "Relatórios",
   "/dashboard/tutorial": "Tutorial",
@@ -29,7 +30,6 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
   const { alerts, isLoading } = useDashboard();
 
-  // Override local de "seen" — vira mutation quando a API estiver pronta
   const [localAlerts, setLocalAlerts] = useState<RecentAlert[] | null>(null);
   const displayAlerts = localAlerts ?? alerts;
   const unreadCount = displayAlerts.filter((a) => !a.seen).length;
