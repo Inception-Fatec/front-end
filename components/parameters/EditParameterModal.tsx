@@ -33,6 +33,15 @@ export function EditParameterModal({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     void (async () => {
@@ -56,10 +65,10 @@ export function EditParameterModal({
               .filter(
                 (item): item is { id: number; name: string } =>
                   typeof item?.id === "number" &&
-                  typeof item?.name === "string" &&
-                  item?.status === true,
+                  typeof item?.name === "string",
               )
               .map((item) => ({ id: item.id, name: item.name }))
+              .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
           : [];
 
         if (cancelled) return;

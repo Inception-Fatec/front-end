@@ -133,7 +133,10 @@ export function StationsMultiSelect({
               />
             </div>
 
-            <div className="max-h-44 overflow-auto p-1.5 space-y-1">
+            <div
+              className="max-h-44 overflow-y-auto overscroll-contain p-1.5 space-y-1"
+              onWheel={(event) => event.stopPropagation()}
+            >
               {filteredOptions.length === 0 ? (
                 <p className="px-2 py-1.5 text-xs text-secondary-text">
                   Nenhuma estacao encontrada.

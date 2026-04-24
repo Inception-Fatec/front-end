@@ -33,6 +33,10 @@ export function ParametersTable({
   uniqueActiveCount,
 }: ParametersTableProps) {
   const [data, setData] = useState<PaginatedParameters>(initialData);
+  const [globalStatus, setGlobalStatus] = useState({
+    activeCount,
+    uniqueActiveCount,
+  });
   const [search, setSearch] = useState("");
   const [stationFilter, setStationFilter] = useState("all");
   const [stations, setStations] = useState<StationFilterOption[]>([]);
@@ -40,6 +44,36 @@ export function ParametersTable({
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editParam, setEditParam] = useState<ParameterType | null>(null);
+
+  const refreshGlobalStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/parameters?limit=all", {
+        cache: "no-store",
+      });
+
+      if (!res.ok) return;
+
+      const payload = await res.json();
+      const rows = Array.isArray(payload?.data)
+        ? (payload.data as ParameterType[])
+        : [];
+
+      const nextActiveCount = rows.reduce(
+        (sum, parameter) => sum + (parameter.linked_stations?.length ?? 0),
+        0,
+      );
+      const nextUniqueActiveCount = rows.filter(
+        (parameter) => (parameter.linked_stations?.length ?? 0) > 0,
+      ).length;
+
+      setGlobalStatus({
+        activeCount: nextActiveCount,
+        uniqueActiveCount: nextUniqueActiveCount,
+      });
+    } catch {
+      // Keep current values when the refresh request fails.
+    }
+  }, []);
 
   useEffect(() => {
     void (async () => {
@@ -55,17 +89,19 @@ export function ParametersTable({
               .filter(
                 (item): item is { id: number; name: string } =>
                   typeof item?.id === "number" &&
-                  typeof item?.name === "string" &&
-                  item?.status === true,
+                  typeof item?.name === "string",
               )
               .map((item) => ({ id: item.id, name: item.name }))
+              .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
           : [];
         setStations(mapped);
       } catch {
         setStations([]);
       }
     })();
-  }, []);
+
+    void refreshGlobalStatus();
+  }, [refreshGlobalStatus]);
 
   const fetchPage = useCallback(
     async (page: number, query = search, selectedStation = stationFilter) => {
@@ -125,14 +161,14 @@ export function ParametersTable({
               </p>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-4xl leading-none font-bold text-primary">
-                  {activeCount}
+                  {globalStatus.activeCount}
                 </span>
                 <span className="text-sm text-secondary-text">
                   Parâmetros Ativos
                 </span>
                 <span className="ml-3 flex items-baseline gap-2">
                   <span className="text-4xl leading-none font-bold text-primary">
-                    {uniqueActiveCount}
+                    {globalStatus.uniqueActiveCount}
                   </span>
                   <span className="text-sm text-secondary-text">
                     Parâmetros Únicos
@@ -309,7 +345,6 @@ export function ParametersTable({
           </div>
         </div>
 
-        {/* Guia de Padronização */}
         <div className="rounded-2xl border border-border overflow-hidden bg-card-background/60">
           <div className="grid grid-cols-1 lg:grid-cols-3">
             <div className="lg:col-span-2 p-6 md:p-7">
@@ -319,11 +354,7 @@ export function ParametersTable({
                   <h3 className="text-2xl font-semibold text-foreground leading-tight">
                     Guia de Padronização
                   </h3>
-                  <p className="text-sm md:text-base text-secondary-text leading-relaxed max-w-2xl">
-                    Ao criar novos parâmetros, certifique-se de utilizar
-                    unidades de medida padrão (SI) para garantir a
-                    compatibilidade entre diferentes sistemas de visualização.
-                  </p>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     <div className="text-sm text-secondary-text">
                       <span className="font-medium text-foreground">
@@ -369,14 +400,21 @@ export function ParametersTable({
       {createOpen && (
         <CreateParameterModal
           onClose={() => setCreateOpen(false)}
-          onSuccess={() => fetchPage(1)}
+          onSuccess={() => {
+            void Promise.all([fetchPage(1), refreshGlobalStatus()]);
+          }}
         />
       )}
       {editParam && (
         <EditParameterModal
           parameter={editParam}
           onClose={() => setEditParam(null)}
-          onSuccess={() => fetchPage(data.pagination.page)}
+          onSuccess={() => {
+            void Promise.all([
+              fetchPage(data.pagination.page),
+              refreshGlobalStatus(),
+            ]);
+          }}
         />
       )}
     </>
