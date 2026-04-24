@@ -33,7 +33,7 @@ export type UpdateStation = Partial<Omit<Station, "id" | "created_at">> & {
 };
 
 export type StationWithGroupings = Station & {
-  station_groupings: { id_grouping: number; groupings?: { name: string } }[];
+  station_groupings: { id_grouping: number; groupings?: { name: string }[] }[];
 };
 
 export type StationWithDetails = StationWithGroupings & {

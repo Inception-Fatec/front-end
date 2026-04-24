@@ -174,7 +174,7 @@ export async function GET(req: NextRequest) {
       const { data: station, error } = await supabaseAdmin
         .from("stations")
         .select(
-          `*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ), measurements ( id, value, date_time ) )`,
+          `*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit, symbol ) )`,
         )
         .eq("id", id)
         .maybeSingle();
@@ -186,9 +186,38 @@ export async function GET(req: NextRequest) {
           { status: 404 },
         );
 
-      return NextResponse.json(station as StationWithDetails, { status: 200 });
-    }
+      const parametersWithMeasurements = await Promise.all(
+        station.parameters.map(
+          async (param: {
+            id: number;
+            id_parameter_type: number;
+            status: boolean;
+            parameter_types: { name: string; unit: string };
+          }) => {
+            const { data: lastMeasurement } = await supabaseAdmin
+              .from("measurements")
+              .select("id, value, date_time")
+              .eq("id_parameter", param.id)
+              .order("date_time", { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
+            return {
+              ...param,
+              measurements: lastMeasurement ? [lastMeasurement] : [],
+            };
+          },
+        ),
+      );
+
+      return NextResponse.json(
+        {
+          ...station,
+          parameters: parametersWithMeasurements,
+        } as StationWithDetails,
+        { status: 200 },
+      );
+    }
     const page = Math.max(1, Number(searchParams.get("page") ?? 1));
     const search = searchParams.get("search") || "";
     const rawLimit = searchParams.get("limit");
@@ -211,6 +240,13 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       query = query.ilike("name", `%${search}%`);
+    }
+
+    const statusParam = searchParams.get("status");
+    if (statusParam === "active") {
+      query = query.eq("status", true);
+    } else if (statusParam === "inactive") {
+      query = query.eq("status", false);
     }
 
     if (!isAll && limit !== null) {
