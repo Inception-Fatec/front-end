@@ -15,6 +15,8 @@
     "@supabase/supabase-js": "^2.99.2",
     "@upstash/redis": "^1.37.0",
     "bcryptjs": "^3.0.3",
+    "highcharts": "^12.6.0",
+    "highcharts-react-official": "^3.2.3",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "next-auth": "5.0.0-beta.30",
