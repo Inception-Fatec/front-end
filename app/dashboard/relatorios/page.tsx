@@ -31,7 +31,9 @@ const TempRangeChart = dynamic(
 
 const RainfallChart = dynamic(
   () =>
-    import("@/components/relatorios/RainfallChart").then((m) => m.RainfallChart),
+    import("@/components/relatorios/RainfallChart").then(
+      (m) => m.RainfallChart,
+    ),
   { ssr: false },
 );
 
