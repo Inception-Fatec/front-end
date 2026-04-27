@@ -31,4 +31,4 @@ jobs:
         run: pnpm run lint
 
       - name: Prettify code
-        run: pnpm exec prettier --write .
+        run: pnpm exec prettier --check .

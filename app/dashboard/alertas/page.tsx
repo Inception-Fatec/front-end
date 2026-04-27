@@ -7,6 +7,8 @@ export default async function AlertasPage() {
   if (!session) redirect("/login");
 
   return (
-    <AlertsTabs sessionRole={session.user.role as "ADMIN" | "OPERATOR" | "USER"} />
+    <AlertsTabs
+      sessionRole={session.user.role as "ADMIN" | "OPERATOR" | "USER"}
+    />
   );
 }

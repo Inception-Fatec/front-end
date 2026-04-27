@@ -14,7 +14,15 @@ export type Station = {
   status: boolean;
 };
 
-export type CreateStation = Omit<Station, "id" | "created_at" | "last_measurement" | "address" | "latitude" | "longitude"> & {
+export type CreateStation = Omit<
+  Station,
+  | "id"
+  | "created_at"
+  | "last_measurement"
+  | "address"
+  | "latitude"
+  | "longitude"
+> & {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -25,7 +33,7 @@ export type UpdateStation = Partial<Omit<Station, "id" | "created_at">> & {
 };
 
 export type StationWithGroupings = Station & {
-  station_groupings: { id_grouping: number; groupings?: { name: string } }[];
+  station_groupings: { id_grouping: number; groupings?: { name: string }[] }[];
 };
 
 export type StationWithDetails = StationWithGroupings & {

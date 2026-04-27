@@ -20,9 +20,7 @@ interface AlertsTableProps {
   sessionRole: UserRole;
 }
 
-export function AlertsTable({
-  sessionRole,
-}: AlertsTableProps) {
+export function AlertsTable({ sessionRole }: AlertsTableProps) {
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(8);
   const [parameterTypeFilter, setParameterTypeFilter] = useState(0);
@@ -32,7 +30,9 @@ export function AlertsTable({
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editAlert, setEditAlert] = useState<AlertWithParameters | null>(null);
-  const [deleteAlert, setDeleteAlert] = useState<AlertWithParameters | null>(null);
+  const [deleteAlert, setDeleteAlert] = useState<AlertWithParameters | null>(
+    null,
+  );
   const [data, setData] = useState<PaginatedAlerts>({
     data: [],
     pagination: {
@@ -44,10 +44,22 @@ export function AlertsTable({
   });
 
   const fetchPage = useCallback(
-    async (page: number, l = limit, s = search, p = parameterTypeFilter, se = severityFilter) => {
+    async (
+      page: number,
+      l = limit,
+      s = search,
+      p = parameterTypeFilter,
+      se = severityFilter,
+    ) => {
       setLoading(true);
       try {
-        const result = await getAlerts({ page, limit: l, search: s, parameterType: p, severity: se });
+        const result = await getAlerts({
+          page,
+          limit: l,
+          search: s,
+          parameterType: p,
+          severity: se,
+        });
         setData(result);
       } finally {
         setLoading(false);
@@ -90,7 +102,7 @@ export function AlertsTable({
       setData((prev) => ({
         ...prev,
         data: prev.data.map((alert) =>
-          alert.id === id ? { ...alert, status } : alert
+          alert.id === id ? { ...alert, status } : alert,
         ),
       }));
     } catch (error) {
@@ -156,16 +168,30 @@ export function AlertsTable({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-secondary-text">
-                  <th className="text-left px-4 py-3 font-medium">Nome do Alerta</th>
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Tipo de Parâmetro</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Mensagem</th>
+                  <th className="text-left px-4 py-3 font-medium">
+                    Nome do Alerta
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">
+                    Tipo de Parâmetro
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">
+                    Mensagem
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Condição</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Severidade</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Cadastrado em</th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
+                    Severidade
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">
+                    Cadastrado em
+                  </th>
                   {sessionRole !== "USER" && (
                     <>
-                      <th className="text-right px-4 py-3 font-medium">Status</th>
-                      <th className="text-right px-4 py-3 font-medium">Ações</th>
+                      <th className="text-right px-4 py-3 font-medium">
+                        Status
+                      </th>
+                      <th className="text-right px-4 py-3 font-medium">
+                        Ações
+                      </th>
                     </>
                   )}
                 </tr>
@@ -206,12 +232,28 @@ export function AlertsTable({
                         </td>
                         <td className="px-4 py-3 text-secondary-text hidden sm:table-cell">
                           <div className="flex items-center gap-2">
-                            <ParameterIcon name={alert.alert_parameters?.[0]?.parameters?.parameter_types?.name || "Parâmetro"} />
+                            <ParameterIcon
+                              name={
+                                alert.alert_parameters?.[0]?.parameters
+                                  ?.parameter_types?.name || "Parâmetro"
+                              }
+                            />
                             <div>
-                              {alert.alert_parameters?.[0]?.parameters?.parameter_types?.name}
+                              {
+                                alert.alert_parameters?.[0]?.parameters
+                                  ?.parameter_types?.name
+                              }
                               <br />
                               <span className="text-xs text-secondary-text">
-                                {alert.alert_parameters?.[0]?.parameters?.parameter_types?.unit} - {alert.alert_parameters?.[0]?.parameters?.parameter_types?.symbol}
+                                {
+                                  alert.alert_parameters?.[0]?.parameters
+                                    ?.parameter_types?.unit
+                                }{" "}
+                                -{" "}
+                                {
+                                  alert.alert_parameters?.[0]?.parameters
+                                    ?.parameter_types?.symbol
+                                }
                               </span>
                             </div>
                           </div>
@@ -220,7 +262,11 @@ export function AlertsTable({
                           {alert.message}
                         </td>
                         <td className="px-4 py-3">
-                          {alert.operator} {alert.value}{alert.alert_parameters?.[0]?.parameters?.parameter_types?.symbol}
+                          {alert.operator} {alert.value}
+                          {
+                            alert.alert_parameters?.[0]?.parameters
+                              ?.parameter_types?.symbol
+                          }
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           <SeverityBadge severity={alert.severity} />
@@ -233,7 +279,9 @@ export function AlertsTable({
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-between">
                                 <button
-                                  onClick={() => toggleStatus((alert.id), !alert.status)}
+                                  onClick={() =>
+                                    toggleStatus(alert.id, !alert.status)
+                                  }
                                   className={[
                                     "relative w-10 h-5.5 rounded-full transition-colors duration-200",
                                     alert.status ? "bg-primary" : "bg-border",
@@ -243,7 +291,9 @@ export function AlertsTable({
                                   <span
                                     className={[
                                       "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200",
-                                      alert.status ? "translate-x-min" : "-translate-x-full",
+                                      alert.status
+                                        ? "translate-x-min"
+                                        : "-translate-x-full",
                                     ].join(" ")}
                                   />
                                 </button>
@@ -293,26 +343,30 @@ export function AlertsTable({
                 >
                   <ChevronLeft size={14} />
                 </button>
-                {Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1).map(
-                  (n) => (
-                    <button
-                      key={n}
-                      onClick={() => fetchPage(n)}
-                      disabled={loading}
-                      className={[
-                        "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
-                        n === data.pagination.page
-                          ? "bg-primary text-white"
-                          : "border border-border text-secondary-text hover:bg-background",
-                      ].join(" ")}
-                    >
-                      {n}
-                    </button>
-                  ),
-                )}
+                {Array.from(
+                  { length: data.pagination.totalPages },
+                  (_, i) => i + 1,
+                ).map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => fetchPage(n)}
+                    disabled={loading}
+                    className={[
+                      "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
+                      n === data.pagination.page
+                        ? "bg-primary text-white"
+                        : "border border-border text-secondary-text hover:bg-background",
+                    ].join(" ")}
+                  >
+                    {n}
+                  </button>
+                ))}
                 <button
                   onClick={() => fetchPage(data.pagination.page + 1)}
-                  disabled={data.pagination.page === data.pagination.totalPages || loading}
+                  disabled={
+                    data.pagination.page === data.pagination.totalPages ||
+                    loading
+                  }
                   className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight size={14} />

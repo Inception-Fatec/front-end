@@ -4,7 +4,11 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { updateAlert } from "@/services/alerts";
 import { ParameterType } from "@/types/parameter";
-import { AlertSeverity, AlertOperator, AlertWithParameters } from "@/types/alert";
+import {
+  AlertSeverity,
+  AlertOperator,
+  AlertWithParameters,
+} from "@/types/alert";
 import { StationWithParameters } from "@/types/station";
 
 interface EditAlertModalProps {
@@ -28,21 +32,30 @@ export function EditAlertModal({
   const [operator, setOperator] = useState<AlertOperator>(alert.operator);
   const [value, setValue] = useState(alert.value);
   const [parameterType, setParameterType] = useState<ParameterType | null>(
-    alert.alert_parameters[0]?.parameters.parameter_types ?? null
+    alert.alert_parameters[0]?.parameters.parameter_types ?? null,
   );
-  const [selectedStationIds, setSelectedStationIds] = useState<Set<number>>(() => {
-    return new Set(alert.alert_parameters.map((ap) => ap.parameters.stations.id));
-  });
+  const [selectedStationIds, setSelectedStationIds] = useState<Set<number>>(
+    () => {
+      return new Set(
+        alert.alert_parameters.map((ap) => ap.parameters.stations.id),
+      );
+    },
+  );
   const [parameters, setParameters] = useState<number[]>(() => {
     return alert.alert_parameters.map((ap) => ap.id_parameter);
   });
-  const [validStations, setValidStations] = useState<StationWithParameters[]>(() => {
-    const initialParamType = alert.alert_parameters[0]?.parameters.parameter_types;
-    if (!initialParamType) return [];
-    return stations.filter((station) =>
-      station.parameters.some((p) => p.id_parameter_type === initialParamType.id)
-    );
-  });
+  const [validStations, setValidStations] = useState<StationWithParameters[]>(
+    () => {
+      const initialParamType =
+        alert.alert_parameters[0]?.parameters.parameter_types;
+      if (!initialParamType) return [];
+      return stations.filter((station) =>
+        station.parameters.some(
+          (p) => p.id_parameter_type === initialParamType.id,
+        ),
+      );
+    },
+  );
   const [stationSearch, setStationSearch] = useState("");
   const [showStationDropdown, setShowStationDropdown] = useState(false);
   const [status, setStatus] = useState(alert.status);
@@ -64,7 +77,8 @@ export function EditAlertModal({
   };
 
   const handleParameterTypeChange = (parameterTypeId: number) => {
-    const selected = parameterTypes.find((t) => t.id === parameterTypeId) ?? null;
+    const selected =
+      parameterTypes.find((t) => t.id === parameterTypeId) ?? null;
     setParameterType(selected);
     setSelectedStationIds(new Set());
     setParameters([]);
@@ -72,7 +86,7 @@ export function EditAlertModal({
 
     if (selected) {
       const valid = stations.filter((station) =>
-        station.parameters.some((p) => p.id_parameter_type === parameterTypeId)
+        station.parameters.some((p) => p.id_parameter_type === parameterTypeId),
       );
       setValidStations(valid);
     } else {
@@ -115,25 +129,38 @@ export function EditAlertModal({
 
     setLoading(true);
     try {
-      await updateAlert({ id, name, message, severity, operator, value, status, parameters });
+      await updateAlert({
+        id,
+        name,
+        message,
+        severity,
+        operator,
+        value,
+        status,
+        parameters,
+      });
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atualizar alerta.");
+      setError(
+        err instanceof Error ? err.message : "Erro ao atualizar alerta.",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   const filteredStations = validStations.filter((s) =>
-    s.name.toLowerCase().includes(stationSearch.toLowerCase())
+    s.name.toLowerCase().includes(stationSearch.toLowerCase()),
   );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md bg-card-background border border-border rounded-xl shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-foreground">Editar Alerta</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            Editar Alerta
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"
@@ -150,7 +177,9 @@ export function EditAlertModal({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Nome do Alerta</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Nome do Alerta
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -160,7 +189,9 @@ export function EditAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Mensagem</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Mensagem
+            </label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -170,10 +201,14 @@ export function EditAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Parâmetro</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Parâmetro
+            </label>
             <select
               value={parameterType?.id ?? ""}
-              onChange={(e) => handleParameterTypeChange(Number(e.target.value))}
+              onChange={(e) =>
+                handleParameterTypeChange(Number(e.target.value))
+              }
               className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
             >
               <option value="">Selecionar parâmetro</option>
@@ -186,7 +221,9 @@ export function EditAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Estações</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Estações
+            </label>
 
             <div className="relative">
               <input
@@ -197,7 +234,9 @@ export function EditAlertModal({
                   setShowStationDropdown(true);
                 }}
                 onFocus={() => setShowStationDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStationDropdown(false), 150)}
+                onBlur={() =>
+                  setTimeout(() => setShowStationDropdown(false), 150)
+                }
                 placeholder="Buscar estação..."
                 disabled={!parameterType}
                 className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground placeholder:text-secondary-text focus:outline-none focus:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -257,7 +296,9 @@ export function EditAlertModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-secondary-text">Severidade</label>
+            <label className="text-xs font-medium text-secondary-text">
+              Severidade
+            </label>
             <select
               value={severity}
               onChange={(e) => setSeverity(e.target.value as AlertSeverity)}
@@ -274,7 +315,9 @@ export function EditAlertModal({
 
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1.5 w-fit">
-              <label className="text-xs font-medium text-secondary-text">Condição</label>
+              <label className="text-xs font-medium text-secondary-text">
+                Condição
+              </label>
               <select
                 value={operator}
                 onChange={(e) => setOperator(e.target.value as AlertOperator)}
@@ -290,7 +333,9 @@ export function EditAlertModal({
             </div>
 
             <div className="flex-1 space-y-1.5">
-              <label className="text-xs font-medium text-secondary-text">Valor</label>
+              <label className="text-xs font-medium text-secondary-text">
+                Valor
+              </label>
               <div className="flex items-center rounded-lg border border-border bg-background focus-within:border-primary transition-colors">
                 <input
                   type="number"
