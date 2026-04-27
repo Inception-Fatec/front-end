@@ -73,7 +73,7 @@ export function AnalyticsFilters({
   return (
     <div className="bg-card-background border justify-center border-border p-4 rounded-xl flex flex-wrap gap-4 items-end">
       {/* Estação / Grupo */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 pb-4.5 relative">
         <label className="text-[10px] text-center text-secondary-text uppercase font-bold">
           Estação / Grupo
         </label>
