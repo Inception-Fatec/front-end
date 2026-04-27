@@ -161,6 +161,41 @@ export async function POST(req: NextRequest) {
   }
 }
 
+async function fetchAllMeasurements(
+  parameterId: number,
+  startDate: string | null,
+  endDate: string,
+): Promise<{ id: number; value: number; date_time: string }[]> {
+  const PAGE = 1000;
+  let from = 0;
+  let all: { id: number; value: number; date_time: string }[] = [];
+
+  while (true) {
+    let query = supabaseAdmin
+      .from("measurements")
+      .select("id, value, date_time")
+      .eq("id_parameter", parameterId)
+      .lte("date_time", endDate)
+      .order("date_time", { ascending: true })
+      .range(from, from + PAGE - 1);
+
+    if (startDate) {
+      query = query.gte("date_time", startDate);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+
+    from += PAGE;
+  }
+
+  return all;
+}
+
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session)
@@ -168,13 +203,25 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
+  const startDate = searchParams.get("start_date");
+  const endDate = searchParams.get("end_date") || new Date().toISOString();
 
   try {
     if (id) {
+      // Busca estação com parâmetros mas SEM measurements no join
       const { data: station, error } = await supabaseAdmin
         .from("stations")
         .select(
-          `*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit, symbol ) )`,
+          `
+          *,
+          station_groupings ( id_grouping, groupings ( name ) ),
+          parameters (
+            id,
+            id_parameter_type,
+            status,
+            parameter_types ( name, unit )
+          )
+        `,
         )
         .eq("id", id)
         .maybeSingle();
@@ -186,28 +233,16 @@ export async function GET(req: NextRequest) {
           { status: 404 },
         );
 
+      // Busca todas as measurements de cada parâmetro em paralelo paginando internamente
       const parametersWithMeasurements = await Promise.all(
-        station.parameters.map(
-          async (param: {
-            id: number;
-            id_parameter_type: number;
-            status: boolean;
-            parameter_types: { name: string; unit: string };
-          }) => {
-            const { data: lastMeasurement } = await supabaseAdmin
-              .from("measurements")
-              .select("id, value, date_time")
-              .eq("id_parameter", param.id)
-              .order("date_time", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            return {
-              ...param,
-              measurements: lastMeasurement ? [lastMeasurement] : [],
-            };
-          },
-        ),
+        station.parameters.map(async (param: { id: number }) => {
+          const measurements = await fetchAllMeasurements(
+            param.id,
+            startDate,
+            endDate,
+          );
+          return { ...param, measurements };
+        }),
       );
 
       return NextResponse.json(
@@ -226,36 +261,27 @@ export async function GET(req: NextRequest) {
       ? null
       : Math.min(Math.max(Number(rawLimit ?? 10), 1), 50);
 
-    let query = supabaseAdmin
+    let queryList = supabaseAdmin
       .from("stations")
       .select(
-        `
-                *,
-                station_groupings ( id_grouping, groupings ( name ) ),
-                parameters ( id, id_parameter_type, parameter_types ( name, unit, symbol ) )
-            `,
+        `*,
+        station_groupings ( id_grouping, groupings ( name ) ),
+        parameters ( id, id_parameter_type, parameter_types ( name, unit, symbol ) )`,
         { count: "exact" },
       )
       .order("name", { ascending: true });
 
     if (search) {
-      query = query.ilike("name", `%${search}%`);
-    }
-
-    const statusParam = searchParams.get("status");
-    if (statusParam === "active") {
-      query = query.eq("status", true);
-    } else if (statusParam === "inactive") {
-      query = query.eq("status", false);
+      queryList = queryList.ilike("name", `%${search}%`);
     }
 
     if (!isAll && limit !== null) {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
-      query = query.range(from, to);
+      queryList = queryList.range(from, to);
     }
 
-    const { data, error, count } = await query;
+    const { data, error, count } = await queryList;
     if (error) throw error;
 
     return NextResponse.json(
@@ -293,7 +319,6 @@ export async function PUT(req: NextRequest) {
     } = await req.json();
     const {
       id,
-      action,
       name,
       id_datalogger,
       status,
