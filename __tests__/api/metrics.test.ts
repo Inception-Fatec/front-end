@@ -23,9 +23,12 @@ function createMockRequestFromText(text: string) {
 }
 
 function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  if (Array.isArray(value))
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
   if (value && typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b));
+    const entries = Object.entries(value as Record<string, unknown>).sort(
+      ([a], [b]) => a.localeCompare(b),
+    );
     return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`).join(",")}}`;
   }
   return JSON.stringify(value);
@@ -34,8 +37,8 @@ function stableStringify(value: unknown): string {
 describe("POST /api/metrics", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetMongoDb.mockResolvedValue({ 
-      collection: jest.fn(() => ({ insertOne: mockInsertOne })) 
+    mockGetMongoDb.mockResolvedValue({
+      collection: jest.fn(() => ({ insertOne: mockInsertOne })),
     });
     mockInsertOne.mockResolvedValue({ acknowledged: true });
   });
@@ -52,35 +55,44 @@ describe("POST /api/metrics", () => {
     expect(json.error).toContain("2 KB");
     // Verifica se gravou na auditoria
     expect(mockInsertOne).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "ingestion_failure", reason: "payload_too_large" })
+      expect.objectContaining({
+        event: "ingestion_failure",
+        reason: "payload_too_large",
+      }),
     );
   });
 
   it("deve retornar 422 quando o checksum for inválido", async () => {
     const payload = { temperature: 25 };
-    const req = createMockRequestFromText(JSON.stringify({
-      stationId: "estacao-01",
-      payload,
-      checksum: "hash-errado"
-    }));
+    const req = createMockRequestFromText(
+      JSON.stringify({
+        stationId: "estacao-01",
+        payload,
+        checksum: "hash-errado",
+      }),
+    );
 
     const res = await POST(req);
-    
+
     expect(res.status).toBe(422);
     expect(mockInsertOne).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: "integrity_failure" })
+      expect.objectContaining({ reason: "integrity_failure" }),
     );
   });
 
   it("deve persistir em raw_measurements quando os dados forem válidos", async () => {
     const payload = { humidity: 80, temperature: 22 };
-    const checksum = createHash("sha256").update(stableStringify(payload)).digest("hex");
-    
-    const req = createMockRequestFromText(JSON.stringify({
-      stationId: "estacao-99",
-      payload,
-      checksum
-    }));
+    const checksum = createHash("sha256")
+      .update(stableStringify(payload))
+      .digest("hex");
+
+    const req = createMockRequestFromText(
+      JSON.stringify({
+        stationId: "estacao-99",
+        payload,
+        checksum,
+      }),
+    );
 
     const res = await POST(req);
 
@@ -89,8 +101,8 @@ describe("POST /api/metrics", () => {
       expect.objectContaining({
         station_id: "estacao-99",
         payload: payload,
-        checksum_received: checksum
-      })
+        checksum_received: checksum,
+      }),
     );
   });
 });
