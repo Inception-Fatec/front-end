@@ -16,6 +16,13 @@ jest.mock("next/server", () => ({
 
 jest.mock("../../lib/mongodb", () => ({
   getMongoDb: jest.fn(() => mockGetMongoDb()),
+  logAudit: jest.fn((reason, details) =>
+    mockInsertOne({
+      event: "ingestion_failure",
+      reason,
+      ...details,
+    }),
+  ),
 }));
 
 function createMockRequestFromText(text: string) {
@@ -44,7 +51,6 @@ describe("POST /api/metrics", () => {
   });
 
   it("deve retornar 413 e gravar log de auditoria quando o payload excede 2KB", async () => {
-    // Criando um corpo que estoura 2KB
     const bigData = "a".repeat(2050);
     const req = createMockRequestFromText(bigData);
 
@@ -53,10 +59,8 @@ describe("POST /api/metrics", () => {
 
     expect(res.status).toBe(413);
     expect(json.error).toContain("2 KB");
-    // Verifica se gravou na auditoria
     expect(mockInsertOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        event: "ingestion_failure",
         reason: "payload_too_large",
       }),
     );

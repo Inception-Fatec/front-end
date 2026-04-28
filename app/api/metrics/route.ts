@@ -4,7 +4,6 @@ import { getMongoDb, logAudit } from "../../../lib/mongodb";
 
 const MAX_PAYLOAD_BYTES = 2048;
 
-
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
@@ -20,6 +19,13 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
+interface MetricsBody {
+  stationId?: string;
+  id_station?: string;
+  payload: Record<string, unknown>;
+  checksum: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
@@ -33,7 +39,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let body: any;
+    let body: MetricsBody;
     try {
       body = JSON.parse(rawBody);
     } catch {
@@ -46,7 +52,10 @@ export async function POST(req: NextRequest) {
     if (!stationId || body.payload === undefined || !body.checksum) {
       await logAudit("missing_fields", { stationId, size: payloadSize });
       return NextResponse.json(
-        { error: "Dados incompletos (stationId, payload e checksum são obrigatórios)." },
+        {
+          error:
+            "Dados incompletos (stationId, payload e checksum são obrigatórios).",
+        },
         { status: 400 },
       );
     }
@@ -55,7 +64,7 @@ export async function POST(req: NextRequest) {
     const calculatedChecksum = createHash("sha256")
       .update(payloadToValidate)
       .digest("hex");
-    
+
     const receivedChecksum = body.checksum.trim().toLowerCase();
 
     if (receivedChecksum !== calculatedChecksum) {
@@ -79,7 +88,6 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true }, { status: 201 });
-
   } catch (error) {
     console.error("Erro na rota POST /api/metrics:", error);
     return NextResponse.json(
