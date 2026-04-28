@@ -4,7 +4,6 @@ import { getMongoDb } from "../../../lib/mongodb";
 
 const MAX_PAYLOAD_BYTES = 2048;
 
-
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
@@ -19,7 +18,6 @@ function stableStringify(value: unknown): string {
   }
   return JSON.stringify(value);
 }
-
 
 async function logAudit(reason: string, details: { stationId?: string | number, size: number }) {
   try {
@@ -36,7 +34,6 @@ async function logAudit(reason: string, details: { stationId?: string | number, 
   }
 }
 
-
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
@@ -44,10 +41,7 @@ export async function POST(req: NextRequest) {
 
     if (payloadSize > MAX_PAYLOAD_BYTES) {
       await logAudit("payload_too_large", { size: payloadSize });
-      return NextResponse.json(
-        { error: "Payload excede o limite de 2 KB." },
-        { status: 413 }
-      );
+      return NextResponse.json({ error: "Payload excede o limite de 2 KB." }, { status: 413 });
     }
 
     let body: any;
@@ -62,25 +56,16 @@ export async function POST(req: NextRequest) {
 
     if (!stationId || body.payload === undefined || !body.checksum) {
       await logAudit("missing_fields", { stationId, size: payloadSize });
-      return NextResponse.json(
-        { error: "Dados incompletos (stationId, payload e checksum são obrigatórios)." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Dados incompletos (stationId, payload e checksum são obrigatórios)." }, { status: 400 });
     }
 
     const payloadToValidate = stableStringify(body.payload);
-    const calculatedChecksum = createHash("sha256")
-      .update(payloadToValidate)
-      .digest("hex");
-    
+    const calculatedChecksum = createHash("sha256").update(payloadToValidate).digest("hex");
     const receivedChecksum = body.checksum.trim().toLowerCase();
 
     if (receivedChecksum !== calculatedChecksum) {
       await logAudit("integrity_failure", { stationId, size: payloadSize });
-      return NextResponse.json({ 
-        error: "Falha de integridade (Checksum divergente).",
-        expected: calculatedChecksum 
-      }, { status: 422 });
+      return NextResponse.json({ error: "Falha de integridade (Checksum divergente).", expected: calculatedChecksum }, { status: 422 });
     }
 
     const db = await getMongoDb();
@@ -93,9 +78,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true }, { status: 201 });
-
   } catch (error) {
-    console.error("ERRO INTERNO NA API:", error);
     return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 });
   }
 }
