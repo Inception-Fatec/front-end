@@ -88,3 +88,16 @@ export async function getStationById(
 
   return res.json();
 }
+
+export async function getStationLatest(
+  id: number,
+): Promise<import("@/types/station").StationWithDetails> {
+  const res = await fetch(`/api/stations/${id}/latest`, { cache: "no-store" });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? "Erro ao buscar estação.");
+  }
+
+  return res.json();
+}
