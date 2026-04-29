@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, Pencil, Trash2, Copy, Check } from "lucide-react";
 import { ParameterIcon } from "@/components/alerts/ParameterIcon";
-import { getStationById } from "@/services/stations";
+import { getStationLatest } from "@/services/stations";
 import type { StationWithDetails } from "@/types/station";
 import type { UserRole } from "@/types/user";
 
@@ -78,6 +78,16 @@ function getLastMeasurement(
   return { value: last.value, unit: param.parameter_types.unit };
 }
 
+function formatDateShort(dateStr: string): string {
+  const date = new Date(dateStr);
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+
+  return `${day}/${month}/${year}`;
+}
+
 export function StationDrawer({
   stationId,
   sessionRole,
@@ -94,7 +104,7 @@ export function StationDrawer({
       setLoading(true);
       setError(null);
       try {
-        const data = await getStationById(stationId);
+        const data = await getStationLatest(stationId);
         setStation(data);
       } catch (err) {
         setError(
@@ -109,7 +119,6 @@ export function StationDrawer({
 
   const canEdit = sessionRole !== "USER";
   const canDelete = sessionRole === "ADMIN";
-
   return (
     <>
       {/* Overlay */}
@@ -222,8 +231,17 @@ export function StationDrawer({
                       return (
                         <div
                           key={p.id}
-                          className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-card-background border border-border"
+                          className="relative flex items-center justify-between px-3 py-4 rounded-lg bg-card-background border border-border"
                         >
+                          {last && (
+                            <span className="absolute top-0.5 right-3 text-[10px] text-secondary-text">
+                              {formatDateShort(
+                                p.measurements[p.measurements.length - 1]
+                                  .date_time,
+                              )}
+                            </span>
+                          )}
+
                           <div className="flex items-center gap-2.5">
                             <ParameterIcon
                               name={p.parameter_types.name}
@@ -233,6 +251,7 @@ export function StationDrawer({
                               {p.parameter_types.name}
                             </span>
                           </div>
+
                           {last ? (
                             <span className="text-xs font-semibold text-foreground">
                               {last.value}
@@ -252,20 +271,6 @@ export function StationDrawer({
                   </div>
                 </div>
               )}
-
-              {/* Histórico placeholder */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-wider text-secondary-text font-medium">
-                    Histórico — Últimas 24h
-                  </p>
-                  {station.parameters[0] && (
-                    <span className="text-[10px] text-secondary-text">
-                      {station.parameters[0].parameter_types.name}
-                    </span>
-                  )}
-                </div>
-              </div>
             </>
           ) : null}
         </div>
