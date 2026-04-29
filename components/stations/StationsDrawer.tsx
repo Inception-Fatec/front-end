@@ -18,10 +18,11 @@ interface StationDrawerProps {
 function StatusBadge({ status }: { status: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status
-        ? "bg-green-500/10 text-green-400 border-green-500/20"
-        : "bg-border text-secondary-text border-border"
-        }`}
+      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+        status
+          ? "bg-green-500/10 text-green-400 border-green-500/20"
+          : "bg-border text-secondary-text border-border"
+      }`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${status ? "bg-green-400" : "bg-secondary-text"}`}
@@ -234,12 +235,18 @@ export function StationDrawer({
                         >
                           {last && (
                             <span className="absolute top-0.5 right-3 text-[10px] text-secondary-text">
-                              {formatDateShort(p.measurements[p.measurements.length - 1].date_time)}
+                              {formatDateShort(
+                                p.measurements[p.measurements.length - 1]
+                                  .date_time,
+                              )}
                             </span>
                           )}
 
                           <div className="flex items-center gap-2.5">
-                            <ParameterIcon name={p.parameter_types.name} size={15} />
+                            <ParameterIcon
+                              name={p.parameter_types.name}
+                              size={15}
+                            />
                             <span className="text-xs font-medium text-foreground">
                               {p.parameter_types.name}
                             </span>
@@ -249,11 +256,14 @@ export function StationDrawer({
                             <span className="text-xs font-semibold text-foreground">
                               {last.value}
                               <span className="text-secondary-text font-normal ml-0.5">
-                                {p.parameter_types.symbol ?? p.parameter_types.unit}
+                                {p.parameter_types.symbol ??
+                                  p.parameter_types.unit}
                               </span>
                             </span>
                           ) : (
-                            <span className="text-xs text-secondary-text">—</span>
+                            <span className="text-xs text-secondary-text">
+                              —
+                            </span>
                           )}
                         </div>
                       );
