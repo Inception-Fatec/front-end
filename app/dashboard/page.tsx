@@ -2,10 +2,10 @@
 
 // app/dashboard/page.tsx
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Radio, Zap, AlertTriangle, Clock } from "lucide-react";
+import { Radio, Zap, AlertTriangle, Clock, Layers } from "lucide-react";
 
 import { useDashboard } from "@/context/DashboardContext";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -14,14 +14,33 @@ import { StationsTable } from "@/components/dashboard/StationsTable";
 import { RecentAlertsList } from "@/components/dashboard/RecentAlertsList";
 import { ParametersGrid } from "@/components/dashboard/ParametersGrid";
 
-function formatSeconds(s: number) {
-  return `${Math.floor(s / 60)}m ${s % 60}s`;
+function timedifference(date_time: string) {
+  if (!date_time) return '-';
+  const agora = new Date().getTime();
+  const iso = date_time.endsWith('Z') ? date_time : date_time + 'Z';
+  const data = new Date(iso).getTime();
+  const diffMs = agora - data;
+  const segundos = Math.floor(diffMs / 1000);
+  const minutos = Math.floor(segundos / 60);
+  if (minutos > 0) return `${minutos} min atrás`;
+  return `${segundos} s atrás`;
+}
+
+function TempoAtual({ date }: { date: string }) {
+  const [_, setTick] = useState(0);
+
+  useEffect(() => {
+    const i = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(i);
+  }, []);
+
+  return <>{timedifference(date)}</>;
 }
 
 export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { stats, stations, alerts, params, groups, isLoading, error, refresh } =
+  const { stats, stations, alerts, groups, isLoading, error, refresh } =
     useDashboard();
 
   useEffect(() => {
@@ -51,27 +70,22 @@ export default function DashboardPage() {
               label="Total de Estações"
               icon={<Radio size={18} />}
               value={String(stats!.totalStations)}
-              sub="dispositivos cadastrados"
             />
             <StatCard
               label="Estações Ativas"
               icon={<Zap size={18} />}
               value={String(stats!.activeStations)}
-              sub={`${((stats!.activeStations / stats!.totalStations) * 100).toFixed(1)}% Uptime`}
               valueColor="text-green-400"
             />
             <StatCard
-              label="Alertas Ativos"
-              icon={<AlertTriangle size={18} />}
-              value={String(stats!.activeAlerts).padStart(2, "0")}
-              sub="Verificar condições críticas"
-              valueColor="text-alert"
+              label="Total de Grupos"
+              icon={<Layers size={18} />}
+              value={String(stats!.totalGroups)}
             />
             <StatCard
               label="Última Atualização"
               icon={<Clock size={18} />}
-              value={formatSeconds(stats!.lastUpdateSeconds)}
-              sub="Auto-refresh ativo"
+              value={<TempoAtual date={stats!.lastUpdate} />}
             />
           </>
         )}
@@ -82,7 +96,6 @@ export default function DashboardPage() {
         <div className="xl:col-span-2">
           <StationsTable
             stations={stations}
-            totalCount={stats?.totalStations ?? 0}
             isLoading={isLoading}
             onRefresh={refresh}
           />
@@ -91,7 +104,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Parâmetros meteorológicos */}
-      <ParametersGrid params={params} groups={groups} isLoading={isLoading} />
+      <ParametersGrid groups={groups} isLoading={isLoading} />
     </div>
   );
 }

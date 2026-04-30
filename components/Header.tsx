@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 import { useDashboard } from "@/context/DashboardContext";
 import { NotificationsDropdown } from "@/components/header/NotificationsDropdown";
 import { UserDropdown } from "@/components/header/UserDropdown";
-import type { RecentAlert } from "@/types/api";
+import { updateStatus } from "@/services/alert-logs";
+import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
+import { useSession } from "next-auth/react";
 
 interface HeaderProps {
   onMenuOpen: () => void;
@@ -25,21 +27,48 @@ const BREADCRUMB_MAP: Record<string, string> = {
 };
 
 export function Header({ onMenuOpen }: HeaderProps) {
+  const { data: session } = useSession();
   const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
+  const { notifications, isLoading } = useDashboard();
+  const [localAlerts, setLocalAlerts] = useState<AlertLogWithDetails[]>([]);
 
-  const { alerts, isLoading } = useDashboard();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
 
-  const [localAlerts, setLocalAlerts] = useState<RecentAlert[] | null>(null);
-  const displayAlerts = localAlerts ?? alerts;
-  const unreadCount = displayAlerts.filter((a) => !a.seen).length;
+  const unreadCount = localAlerts.length;
 
-  function handleMarkAllRead() {
-    setLocalAlerts(displayAlerts.map((a) => ({ ...a, seen: true })));
+  useEffect(() => {
+    if (!userId) return;
+    setLocalAlerts(notifications.data);
+  }, [notifications, userId]);
+
+  const seenNotifs = useCallback(async (id: number | null) => {
+    try {
+      await updateStatus(id);
+      return true;
+    } catch (error) {
+      console.error("Error updating alert status:", error);
+      return false;
+    }
+  }, []);
+
+  async function handleMarkAllRead() {
+    const result = await seenNotifs(null);
+
+    if (result) {
+      setLocalAlerts([]);
+    }
+  }
+
+  async function handleMarkOneRead(id: number) {
+    const result = await seenNotifs(id);
+
+    if (result) {
+      setLocalAlerts((prev) => prev.filter((alert) => alert.id !== id));
+    }
   }
 
   function handleBellClick() {
-    if (!notifOpen) setLocalAlerts(null);
     setNotifOpen((v) => !v);
   }
 
@@ -91,8 +120,10 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
           {notifOpen && (
             <NotificationsDropdown
-              alerts={displayAlerts}
+              alerts={localAlerts}
+              unreadCount={unreadCount}
               onMarkAllRead={handleMarkAllRead}
+              onMarkOneRead={handleMarkOneRead}
               onClose={() => setNotifOpen(false)}
             />
           )}

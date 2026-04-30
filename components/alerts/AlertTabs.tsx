@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertsTable } from "./AlertsTable";
 import { AlertLogsTable } from "./AlertLogsTable";
-import { UserRole } from "@/types/api";
+import type { UserRole } from "@/types/user";
+import { useSearchParams } from "next/navigation";
 
 interface AlertsTabsProps {
   sessionRole: UserRole;
@@ -11,6 +12,17 @@ interface AlertsTabsProps {
 
 export function AlertsTabs({ sessionRole }: AlertsTabsProps) {
   const [activeTab, setActiveTab] = useState<"rules" | "history">("rules");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const param = searchParams.get("tab");
+    if (param) {
+      if (param === "history") {
+        setActiveTab("history");
+        window.history.replaceState({}, "", "/dashboard/alertas");
+      }
+    }
+  }, [searchParams]);
 
   return (
     <div className="space-y-4">

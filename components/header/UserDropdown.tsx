@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import type { UserRole } from "@/types/api";
+import type { UserRole } from "@/types/user";
 import { LogOut } from "lucide-react";
 
 const ROLE_LABEL: Record<UserRole, string> = {

@@ -1,7 +1,6 @@
 interface StatCardProps {
   label: string;
-  value: string;
-  sub: string;
+  value: string | React.ReactNode;
   icon: React.ReactNode;
   valueColor?: string;
 }
@@ -9,7 +8,6 @@ interface StatCardProps {
 export function StatCard({
   label,
   value,
-  sub,
   icon,
   valueColor,
 }: StatCardProps) {
@@ -26,7 +24,6 @@ export function StatCard({
       >
         {value}
       </p>
-      <p className="text-xs text-secondary-text">{sub}</p>
     </div>
   );
 }
