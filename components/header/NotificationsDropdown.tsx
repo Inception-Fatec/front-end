@@ -10,7 +10,11 @@ import {
   AlertTriangle,
   ArrowRight,
 } from "lucide-react";
-import { AlertLogWithDetails, AlertSeverity, PaginatedAlertLogs } from "@/types/alert";
+import {
+  AlertLogWithDetails,
+  AlertSeverity,
+  PaginatedAlertLogs,
+} from "@/types/alert";
 
 const SEVERITY_STYLES: Record<
   AlertSeverity,
@@ -131,7 +135,9 @@ export function NotificationsDropdown({
                   <div
                     className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center ${styles.iconBg} ${styles.iconColor}`}
                   >
-                    <AlertIcon parameterName={alert.parameters.parameter_types.name} />
+                    <AlertIcon
+                      parameterName={alert.parameters.parameter_types.name}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
@@ -156,7 +162,8 @@ export function NotificationsDropdown({
                     <p
                       className={`text-[11px] font-medium mt-0.5 ${styles.iconColor}`}
                     >
-                      Valor: {alert.value} {alert.parameters.parameter_types.symbol}
+                      Valor: {alert.value}{" "}
+                      {alert.parameters.parameter_types.symbol}
                     </p>
                   </div>
                 </div>

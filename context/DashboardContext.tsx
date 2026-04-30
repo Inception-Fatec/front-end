@@ -9,7 +9,11 @@ import {
   useState,
 } from "react";
 
-import { getDashboardStats, getGroups, getParameterSummaries } from "@/services/dashboard";
+import {
+  getDashboardStats,
+  getGroups,
+  getParameterSummaries,
+} from "@/services/dashboard";
 import type { DashboardStats, ParameterSummary } from "@/types/dashboard";
 import type { GroupingWithStationDetails } from "@/types/grouping";
 import { getAlertLogs } from "@/services/alert-logs";
@@ -36,9 +40,15 @@ const DashboardContext = createContext<DashboardContextValue | null>(null);
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [stations, setStations] = useState<PaginatedStations>({ data: [], pagination: { page: 1, limit: 4, total: 0, totalPages: 0 } });
+  const [stations, setStations] = useState<PaginatedStations>({
+    data: [],
+    pagination: { page: 1, limit: 4, total: 0, totalPages: 0 },
+  });
   const [alerts, setAlerts] = useState<AlertLogWithDetails[]>([]);
-  const [notifications, setNotifications] = useState<PaginatedAlertLogs>({ data: [], pagination: { page: 1, limit: 4, total: 0, totalPages: 0 } });
+  const [notifications, setNotifications] = useState<PaginatedAlertLogs>({
+    data: [],
+    pagination: { page: 1, limit: 4, total: 0, totalPages: 0 },
+  });
   const [groups, setGroups] = useState<GroupingWithStationDetails[]>([]);
   const [params, setParams] = useState<ParameterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,9 +91,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    Promise.all([
-      getParameterSummaries(),
-    ])
+    Promise.all([getParameterSummaries()])
       .then(([p]) => {
         if (!isMounted.current) return;
         setParams(p);
@@ -97,17 +105,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     fetchAll();
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(fetchAll, POLL_INTERVAL_MS);
-  }, [fetchAll]);
-
-  useEffect(() => {
-    isMounted.current = true;
-    fetchAll();
-    intervalRef.current = setInterval(fetchAll, POLL_INTERVAL_MS);
-
-    return () => {
-      isMounted.current = false;
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, [fetchAll]);
 
   useEffect(() => {
@@ -125,7 +122,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
             setAlerts(al.data);
             setNotifications(n);
           }
-        }
+        },
       )
       .on(
         "postgres_changes",
@@ -142,7 +139,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
           setStations(st);
           setStats(s);
-        }
+        },
       )
       .on(
         "postgres_changes",
@@ -153,7 +150,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           const s = await getDashboardStats();
 
           if (isMounted.current) setStats(s);
-        }
+        },
       )
       .on(
         "postgres_changes",
@@ -161,7 +158,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         async () => {
           const s = await getDashboardStats();
           if (isMounted.current) setStats(s);
-        }
+        },
       )
       .subscribe();
 

@@ -1,4 +1,8 @@
-import type { DashboardStats, ParameterSummary, PeriodKey } from "@/types/dashboard";
+import type {
+  DashboardStats,
+  ParameterSummary,
+  PeriodKey,
+} from "@/types/dashboard";
 import type { GroupingWithStationDetails } from "@/types/grouping";
 
 export async function getDashboardStats(): Promise<DashboardStats> {

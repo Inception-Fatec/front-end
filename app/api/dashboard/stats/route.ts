@@ -43,10 +43,10 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        totalStations:    totalStations  ?? 0,
-        activeStations:   activeStations ?? 0,
-        totalGroups:      totalGroups    ?? 0,
-        lastUpdate:       date_time?.date_time      ?? "",
+        totalStations: totalStations ?? 0,
+        activeStations: activeStations ?? 0,
+        totalGroups: totalGroups ?? 0,
+        lastUpdate: date_time?.date_time ?? "",
       } satisfies DashboardStats,
       { status: 200 },
     );

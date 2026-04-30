@@ -31,16 +31,15 @@ export function Header({ onMenuOpen }: HeaderProps) {
   const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
   const { notifications, isLoading } = useDashboard();
-  const [localAlerts, setLocalAlerts] = useState<AlertLogWithDetails[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
 
   const userId = session?.user?.id ? Number(session.user.id) : null;
 
-  const unreadCount = localAlerts.length;
+  const localAlerts = userId
+    ? (notifications.data ?? []).filter((a) => !dismissedIds.has(a.id))
+    : [];
 
-  useEffect(() => {
-    if (!userId) return;
-    setLocalAlerts(notifications.data);
-  }, [notifications, userId]);
+  const unreadCount = localAlerts.length;
 
   const seenNotifs = useCallback(async (id: number | null) => {
     try {
@@ -54,17 +53,15 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
   async function handleMarkAllRead() {
     const result = await seenNotifs(null);
-
     if (result) {
-      setLocalAlerts([]);
+      setDismissedIds(new Set(notifications.data.map((a) => a.id)));
     }
   }
 
   async function handleMarkOneRead(id: number) {
     const result = await seenNotifs(id);
-
     if (result) {
-      setLocalAlerts((prev) => prev.filter((alert) => alert.id !== id));
+      setDismissedIds((prev) => new Set([...prev, id]));
     }
   }
 

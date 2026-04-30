@@ -4,8 +4,20 @@ import { NextRequest, NextResponse } from "next/server";
 import type { ParameterSummary, PeriodKey } from "@/types/dashboard";
 
 const COLOR_MAP: { keywords: string[]; color: string }[] = [
-  { keywords: ["pluviométrico", "pluviometrico", "chuva", "precipitação", "precipitacao"], color: "#1a8cff" },
-  { keywords: ["velocidade do vento", "vel. vento", "vento"], color: "#14b8a6" },
+  {
+    keywords: [
+      "pluviométrico",
+      "pluviometrico",
+      "chuva",
+      "precipitação",
+      "precipitacao",
+    ],
+    color: "#1a8cff",
+  },
+  {
+    keywords: ["velocidade do vento", "vel. vento", "vento"],
+    color: "#14b8a6",
+  },
   { keywords: ["temperatura"], color: "#f97316" },
   { keywords: ["umidade", "umid"], color: "#3b82f6" },
   { keywords: ["pressão", "pressao"], color: "#8b5cf6" },
@@ -44,7 +56,9 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const period = (searchParams.get("period") ?? "30min") as PeriodKey;
-  const groupId = searchParams.get("groupId") ? Number(searchParams.get("groupId")) : null;
+  const groupId = searchParams.get("groupId")
+    ? Number(searchParams.get("groupId"))
+    : null;
 
   const minutes = PERIOD_MINUTES[period] ?? 30;
   const now = new Date();
@@ -70,7 +84,9 @@ export async function GET(req: NextRequest) {
     // ── 2. Busca parâmetros + medições do período em paralelo ──────────────
     let paramQuery = supabaseAdmin
       .from("parameters")
-      .select("id, id_station, parameter_types ( name, symbol, factor_value, offset_value )")
+      .select(
+        "id, id_station, parameter_types ( name, symbol, factor_value, offset_value )",
+      )
       .eq("status", true);
 
     if (stationIds !== null)
@@ -105,9 +121,18 @@ export async function GET(req: NextRequest) {
     for (const p of parameters as Array<{
       id: number;
       id_station: number;
-      parameter_types: { name: string; symbol: string; factor_value: number; offset_value: number }[] | null;
+      parameter_types:
+        | {
+            name: string;
+            symbol: string;
+            factor_value: number;
+            offset_value: number;
+          }[]
+        | null;
     }>) {
-      const pt = Array.isArray(p.parameter_types) ? p.parameter_types[0] : p.parameter_types;
+      const pt = Array.isArray(p.parameter_types)
+        ? p.parameter_types[0]
+        : p.parameter_types;
       if (pt) {
         paramMetaMap[p.id] = {
           name: pt.name,
@@ -135,7 +160,10 @@ export async function GET(req: NextRequest) {
       if (!byType[meta.name])
         byType[meta.name] = { symbol: meta.symbol, readings: [] };
 
-      byType[meta.name].readings.push({ value: realValue, date_time: m.date_time });
+      byType[meta.name].readings.push({
+        value: realValue,
+        date_time: m.date_time,
+      });
     }
 
     // ── 5. Monta ParameterSummary[] ───────────────────────────────────────
@@ -150,10 +178,18 @@ export async function GET(req: NextRequest) {
             ? 0
             : readings.reduce((acc, r) => acc + r.value, 0) / readings.length;
 
-        const slots: number[][] = Array.from({ length: BARS_PER_PERIOD[period] }, () => []);
+        const slots: number[][] = Array.from(
+          { length: BARS_PER_PERIOD[period] },
+          () => [],
+        );
         for (const r of readings) {
-          const t = new Date(r.date_time.endsWith('Z') ? r.date_time : r.date_time + 'Z').getTime();
-          const idx = Math.min(Math.floor((t - sinceMs) / slotMs), BARS_PER_PERIOD[period] - 1);
+          const t = new Date(
+            r.date_time.endsWith("Z") ? r.date_time : r.date_time + "Z",
+          ).getTime();
+          const idx = Math.min(
+            Math.floor((t - sinceMs) / slotMs),
+            BARS_PER_PERIOD[period] - 1,
+          );
           if (idx >= 0) slots[idx].push(r.value);
         }
         const chartSeries: number[] = slots.map((s) =>

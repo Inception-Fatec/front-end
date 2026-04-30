@@ -11,16 +11,15 @@ interface AlertsTabsProps {
 }
 
 export function AlertsTabs({ sessionRole }: AlertsTabsProps) {
-  const [activeTab, setActiveTab] = useState<"rules" | "history">("rules");
   const searchParams = useSearchParams();
 
+  const [activeTab, setActiveTab] = useState<"rules" | "history">(() =>
+    searchParams.get("tab") === "history" ? "history" : "rules",
+  );
+
   useEffect(() => {
-    const param = searchParams.get("tab");
-    if (param) {
-      if (param === "history") {
-        setActiveTab("history");
-        window.history.replaceState({}, "", "/dashboard/alertas");
-      }
+    if (searchParams.get("tab") === "history") {
+      window.history.replaceState({}, "", "/dashboard/alertas");
     }
   }, [searchParams]);
 

@@ -9,5 +9,5 @@ export const supabaseAdmin = createClient(
       fetch: (url, options = {}) =>
         fetch(url, { ...options, keepalive: false }),
     },
-  }
+  },
 );

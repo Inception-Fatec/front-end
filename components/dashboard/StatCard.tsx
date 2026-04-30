@@ -5,12 +5,7 @@ interface StatCardProps {
   valueColor?: string;
 }
 
-export function StatCard({
-  label,
-  value,
-  icon,
-  valueColor,
-}: StatCardProps) {
+export function StatCard({ label, value, icon, valueColor }: StatCardProps) {
   return (
     <div className="bg-card-background border border-border rounded-xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">

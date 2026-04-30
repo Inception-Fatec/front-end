@@ -15,9 +15,9 @@ import { RecentAlertsList } from "@/components/dashboard/RecentAlertsList";
 import { ParametersGrid } from "@/components/dashboard/ParametersGrid";
 
 function timedifference(date_time: string) {
-  if (!date_time) return '-';
+  if (!date_time) return "-";
   const agora = new Date().getTime();
-  const iso = date_time.endsWith('Z') ? date_time : date_time + 'Z';
+  const iso = date_time.endsWith("Z") ? date_time : date_time + "Z";
   const data = new Date(iso).getTime();
   const diffMs = agora - data;
   const segundos = Math.floor(diffMs / 1000);

@@ -22,7 +22,7 @@ interface StationsTableProps {
 export function StationsTable({
   stations,
   isLoading,
-  onRefresh
+  onRefresh,
 }: StationsTableProps) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +43,7 @@ export function StationsTable({
         setLoading(false);
       }
     },
-    [search]
+    [search],
   );
 
   function handleSearch(value: string) {
@@ -52,9 +52,9 @@ export function StationsTable({
   }
 
   function timedifference(date_time: string | null) {
-    if (!date_time) return '-';
+    if (!date_time) return "-";
     const agora = new Date().getTime();
-    const iso = date_time.endsWith('Z') ? date_time : date_time + 'Z';
+    const iso = date_time.endsWith("Z") ? date_time : date_time + "Z";
     const data = new Date(iso).getTime();
     const diffMs = agora - data;
     const segundos = Math.floor(diffMs / 1000);
@@ -145,15 +145,22 @@ export function StationsTable({
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={station.status ? "online" : "offline"} />
+                    <StatusBadge
+                      status={station.status ? "online" : "offline"}
+                    />
                   </td>
                   <td className="px-4 py-3 text-secondary-text text-xs text-center hidden sm:table-cell">
                     <TempoAtual date={station.last_measurement} />
                   </td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => router.push(`/dashboard/estacoes?stationId=${station.id}`)}
-                      className="px-3 py-1 text-xs rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors whitespace-nowrap">
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/estacoes?stationId=${station.id}`,
+                        )
+                      }
+                      className="px-3 py-1 text-xs rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors whitespace-nowrap"
+                    >
                       Ver Detalhes
                     </button>
                   </td>
@@ -186,7 +193,10 @@ export function StationsTable({
               <ChevronLeft size={14} />
             </button>
 
-            {Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1).map((n) => (
+            {Array.from(
+              { length: data.pagination.totalPages },
+              (_, i) => i + 1,
+            ).map((n) => (
               <button
                 key={n}
                 onClick={() => fetchPage(n)}

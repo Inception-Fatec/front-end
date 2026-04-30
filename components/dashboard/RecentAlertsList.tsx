@@ -13,9 +13,9 @@ interface RecentAlertsListProps {
 }
 
 function timedifference(date_time: string) {
-  if (!date_time) return '-';
+  if (!date_time) return "-";
   const agora = new Date().getTime();
-  const iso = date_time.endsWith('Z') ? date_time : date_time + 'Z';
+  const iso = date_time.endsWith("Z") ? date_time : date_time + "Z";
   const data = new Date(iso).getTime();
   const diffMs = agora - data;
   const segundos = Math.floor(diffMs / 1000);
@@ -78,7 +78,8 @@ export function RecentAlertsList({ alerts, isLoading }: RecentAlertsListProps) {
                     {alert.message}
                   </p>
                   <p className="text-sm text-secondary-text truncate">
-                    Valor: {alert.measurement} {alert.parameters.parameter_types.symbol}
+                    Valor: {alert.measurement}{" "}
+                    {alert.parameters.parameter_types.symbol}
                   </p>
                   <p className="text-[11px] text-secondary-text/60 mt-1 uppercase tracking-wide">
                     <TempoAtual date={alert.created_at} />

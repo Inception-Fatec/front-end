@@ -11,9 +11,9 @@ import type { GroupingWithStationDetails } from "@/types/grouping";
 
 const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "30min", label: "Últimos 30min" },
-  { key: "1h",    label: "Última 1h"    },
-  { key: "2h",    label: "Últimas 2h"   },
-  { key: "3h",    label: "Últimas 3h"   },
+  { key: "1h", label: "Última 1h" },
+  { key: "2h", label: "Últimas 2h" },
+  { key: "3h", label: "Últimas 3h" },
 ];
 
 interface ParametersGridProps {
@@ -26,12 +26,12 @@ function formatValue(v: number): string {
 }
 
 export function ParametersGrid({ groups, isLoading }: ParametersGridProps) {
-  const [period,  setPeriod]  = useState<PeriodKey>("30min");
+  const [period, setPeriod] = useState<PeriodKey>("30min");
   const [groupId, setGroupId] = useState<number | null>(null);
 
-  const [params,     setParams]     = useState<ParameterSummary[]>([]);
+  const [params, setParams] = useState<ParameterSummary[]>([]);
   const [isFetching, setIsFetching] = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -61,11 +61,13 @@ export function ParametersGrid({ groups, isLoading }: ParametersGridProps) {
     }
 
     fetchParams();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [period, groupId, isLoading]);
 
   const showSkeletons = isLoading || (isFetching && params.length === 0);
-  const showSpinner   = isFetching && params.length > 0;
+  const showSpinner = isFetching && params.length > 0;
 
   return (
     <div>
@@ -89,7 +91,9 @@ export function ParametersGrid({ groups, isLoading }: ParametersGridProps) {
           >
             <option value="">Todas as Regiões</option>
             {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
             ))}
           </select>
 
@@ -100,7 +104,9 @@ export function ParametersGrid({ groups, isLoading }: ParametersGridProps) {
             className="text-xs px-3 py-1.5 rounded-lg bg-card-background border border-border text-secondary-text focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
           >
             {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.key} value={opt.key}>{opt.label}</option>
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </div>
@@ -140,7 +146,10 @@ export function ParametersGrid({ groups, isLoading }: ParametersGridProps) {
                 </span>
               </p>
 
-              <MiniBarChart data={param.chartData[period]} color={param.color} />
+              <MiniBarChart
+                data={param.chartData[period]}
+                color={param.color}
+              />
             </div>
           ))
         )}
