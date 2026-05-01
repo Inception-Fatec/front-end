@@ -61,11 +61,15 @@ export async function GET(req: NextRequest) {
     : null;
 
   const minutes = PERIOD_MINUTES[period] ?? 30;
+
+  function toLocalISO(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
   const now = new Date();
-  const since = new Date(now.getTime() - minutes * 60_000).toISOString();
+  const since = toLocalISO(new Date(now.getTime() - minutes * 60_000));
 
   try {
-    // ── 1. Resolve station IDs se tiver filtro de grupo ────────────────────
     let stationIds: number[] | null = null;
 
     if (groupId !== null) {
@@ -81,7 +85,6 @@ export async function GET(req: NextRequest) {
       stationIds = groupings.map((g: { id_station: number }) => g.id_station);
     }
 
-    // ── 2. Busca parâmetros + medições do período em paralelo ──────────────
     let paramQuery = supabaseAdmin
       .from("parameters")
       .select(
@@ -104,12 +107,11 @@ export async function GET(req: NextRequest) {
       .select("id_parameter, value, date_time")
       .in("id_parameter", paramIds)
       .gte("date_time", since)
-      .lte("date_time", now.toISOString())
+      .lte("date_time", toLocalISO(now))
       .order("date_time", { ascending: true });
 
     if (mErr) throw mErr;
 
-    // ── 3. Monta mapa id_parameter → metadados ────────────────────────────
     type ParamMeta = {
       name: string;
       symbol: string;
@@ -143,7 +145,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── 4. Agrupa leituras por tipo, aplicando factor e offset ────────────
     type Reading = { value: number; date_time: string };
     const byType: Record<string, { symbol: string; readings: Reading[] }> = {};
 
@@ -166,7 +167,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // ── 5. Monta ParameterSummary[] ───────────────────────────────────────
     const sinceMs = new Date(since).getTime();
     const nowMs = now.getTime();
     const slotMs = (nowMs - sinceMs) / BARS_PER_PERIOD[period];
@@ -183,9 +183,7 @@ export async function GET(req: NextRequest) {
           () => [],
         );
         for (const r of readings) {
-          const t = new Date(
-            r.date_time.endsWith("Z") ? r.date_time : r.date_time + "Z",
-          ).getTime();
+          const t = new Date(r.date_time).getTime();
           const idx = Math.min(
             Math.floor((t - sinceMs) / slotMs),
             BARS_PER_PERIOD[period] - 1,

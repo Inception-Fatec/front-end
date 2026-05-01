@@ -108,6 +108,17 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAll]);
 
   useEffect(() => {
+    isMounted.current = true;
+    fetchAll();
+    intervalRef.current = setInterval(fetchAll, POLL_INTERVAL_MS);
+
+    return () => {
+      isMounted.current = false;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchAll]);
+
+  useEffect(() => {
     const channel = supabase
       .channel("dashboard-realtime")
       .on(

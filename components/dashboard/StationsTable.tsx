@@ -54,11 +54,14 @@ export function StationsTable({
   function timedifference(date_time: string | null) {
     if (!date_time) return "-";
     const agora = new Date().getTime();
-    const iso = date_time.endsWith("Z") ? date_time : date_time + "Z";
-    const data = new Date(iso).getTime();
+    const data = new Date(date_time).getTime();
     const diffMs = agora - data;
     const segundos = Math.floor(diffMs / 1000);
     const minutos = Math.floor(segundos / 60);
+    const horas = Math.floor(minutos / 60);
+    const dias = Math.floor(horas / 24);
+    if (dias > 0) return `${dias} dia${dias > 1 ? "s" : ""} atrás`;
+    if (horas > 0) return `${horas} h atrás`;
     if (minutos > 0) return `${minutos} min atrás`;
     return `${segundos} s atrás`;
   }
