@@ -109,8 +109,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMounted.current = true;
-    fetchAll();
-    intervalRef.current = setInterval(fetchAll, POLL_INTERVAL_MS);
+
+    const initialize = async () => {
+      await fetchAll();
+    };
+
+    void initialize();
+    intervalRef.current = setInterval(() => void fetchAll(), POLL_INTERVAL_MS);
 
     return () => {
       isMounted.current = false;
