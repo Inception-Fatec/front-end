@@ -176,7 +176,7 @@ export function NotificationsDropdown({
         <div className="p-3 border-t border-border">
           <button
             onClick={() => {
-              router.push("/dashboard/alertas");
+              router.push("/dashboard/alertas?tab=history");
               onClose();
             }}
             className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-primary/30 text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
