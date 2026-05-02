@@ -36,7 +36,8 @@ export async function getAlerts({
 }
 
 export async function createAlert(payload: AlertPayload): Promise<void> {
-  const { id: _, ...data } = payload;
+  const { id, ...data } = payload;
+  void id;
   const res = await fetch("/api/alerts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
