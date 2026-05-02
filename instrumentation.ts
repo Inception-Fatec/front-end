@@ -4,5 +4,9 @@ export async function register() {
 
     const { startReceptor } = await import("./app/api/mqtt/subscriber");
     startReceptor();
+
+    console.log("[Instrumentation] Iniciando sync MongoDB → Supabase...");
+    const { main } = await import("./services/sync-mogo-postgre");
+    main();
   }
 }
