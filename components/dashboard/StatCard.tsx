@@ -1,18 +1,11 @@
 interface StatCardProps {
   label: string;
-  value: string;
-  sub: string;
+  value: string | React.ReactNode;
   icon: React.ReactNode;
   valueColor?: string;
 }
 
-export function StatCard({
-  label,
-  value,
-  sub,
-  icon,
-  valueColor,
-}: StatCardProps) {
+export function StatCard({ label, value, icon, valueColor }: StatCardProps) {
   return (
     <div className="bg-card-background border border-border rounded-xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -26,7 +19,6 @@ export function StatCard({
       >
         {value}
       </p>
-      <p className="text-xs text-secondary-text">{sub}</p>
     </div>
   );
 }

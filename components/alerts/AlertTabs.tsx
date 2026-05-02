@@ -1,22 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertsTable } from "./AlertsTable";
 import { AlertLogsTable } from "./AlertLogsTable";
-import { UserRole } from "@/types/api";
+import type { UserRole } from "@/types/user";
+import { useSearchParams } from "next/navigation";
 
 interface AlertsTabsProps {
   sessionRole: UserRole;
 }
 
 export function AlertsTabs({ sessionRole }: AlertsTabsProps) {
-  const [activeTab, setActiveTab] = useState<"rules" | "history">("rules");
+  const searchParams = useSearchParams();
+
+  const [activeTab, setActiveTab] = useState<"rules" | "history">(() =>
+    searchParams.get("tab") === "history" ? "history" : "rules",
+  );
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "history") {
+      window.history.replaceState({}, "", "/dashboard/alertas");
+    }
+  }, [searchParams]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Gerenciar Alertas</h1>
+          <h1 className="text-xl font-bold text-foreground">
+            Gerenciar Alertas
+          </h1>
           <p className="text-sm text-secondary-text mt-0.5">
             {activeTab === "rules"
               ? "Administre os alertas do sistema e suas configurações."

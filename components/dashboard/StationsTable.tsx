@@ -2,50 +2,74 @@
 
 // components/dashboard/StationsTable.tsx
 
-import { useState, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Search, ChevronLeft, ChevronRight, BarChart2 } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
-import { LastUpdated } from "./LastUpdated";
 import { Skeleton } from "./Skeleton";
-import type { StationRow } from "@/types/api";
+import type { PaginatedStations } from "@/types/station";
+import { getStations } from "@/services/stations";
+import { useRouter } from "next/navigation";
 
 const PAGE_SIZE = 4;
 
 interface StationsTableProps {
-  stations: StationRow[];
-  totalCount: number;
+  stations: PaginatedStations;
   isLoading: boolean;
   onRefresh: () => void;
 }
 
-export function StationsTable({
-  stations,
-  isLoading,
-  onRefresh,
-}: StationsTableProps) {
+export function StationsTable({ stations, isLoading }: StationsTableProps) {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<PaginatedStations>(stations);
+  const router = useRouter();
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return stations.filter((s) => s.name.toLowerCase().includes(q));
-  }, [stations, search]);
+  useEffect(() => {
+    setData(stations);
+  }, [stations]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paginated = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+  const fetchPage = useCallback(
+    async (page: number, limit = PAGE_SIZE, s = search) => {
+      setLoading(true);
+      try {
+        const result = await getStations({ page, limit, search: s });
+        setData(result);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [search],
   );
 
   function handleSearch(value: string) {
     setSearch(value);
-    setPage(1);
+    fetchPage(1, PAGE_SIZE, value);
   }
 
-  function handleRefresh() {
-    setPage(1);
-    onRefresh();
+  function timedifference(date_time: string | null) {
+    if (!date_time) return "-";
+    const agora = new Date().getTime();
+    const data = new Date(date_time).getTime();
+    const diffMs = agora - data;
+    const segundos = Math.floor(diffMs / 1000);
+    const minutos = Math.floor(segundos / 60);
+    const horas = Math.floor(minutos / 60);
+    const dias = Math.floor(horas / 24);
+    if (dias > 0) return `${dias} dia${dias > 1 ? "s" : ""} atrás`;
+    if (horas > 0) return `${horas} h atrás`;
+    if (minutos > 0) return `${minutos} min atrás`;
+    return `${segundos} s atrás`;
+  }
+
+  function TempoAtual({ date }: { date: string | null }) {
+    const [, setTick] = useState(0);
+
+    useEffect(() => {
+      const i = setInterval(() => setTick((t) => t + 1), 1000);
+      return () => clearInterval(i);
+    }, []);
+
+    return <>{timedifference(date)}</>;
   }
 
   return (
@@ -95,7 +119,7 @@ export function StationsTable({
                   ))}
                 </tr>
               ))
-            ) : paginated.length === 0 ? (
+            ) : data.data.length === 0 ? (
               <tr>
                 <td
                   colSpan={4}
@@ -105,7 +129,7 @@ export function StationsTable({
                 </td>
               </tr>
             ) : (
-              paginated.map((station) => (
+              data.data.map((station) => (
                 <tr
                   key={station.id}
                   className="hover:bg-background/50 transition-colors"
@@ -115,17 +139,26 @@ export function StationsTable({
                       {station.name}
                     </p>
                     <p className="text-[11px] text-secondary-text">
-                      {station.location}
+                      {station.address}
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={station.status} />
+                    <StatusBadge
+                      status={station.status ? "online" : "offline"}
+                    />
                   </td>
-                  <td className="px-4 py-3 text-secondary-text text-xs hidden sm:table-cell">
-                    {station.lastComm}
+                  <td className="px-4 py-3 text-secondary-text text-xs text-center hidden sm:table-cell">
+                    <TempoAtual date={station.last_measurement} />
                   </td>
                   <td className="px-4 py-3">
-                    <button className="px-3 py-1 text-xs rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors whitespace-nowrap">
+                    <button
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/estacoes?stationId=${station.id}`,
+                        )
+                      }
+                      className="px-3 py-1 text-xs rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors whitespace-nowrap"
+                    >
                       Ver Detalhes
                     </button>
                   </td>
@@ -138,34 +171,36 @@ export function StationsTable({
 
       {/* Footer */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border">
-        {!isLoading && (
+        {!isLoading && !loading && (
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-secondary-text">
-              {filtered.length === 0
+              {data.pagination.total === 0
                 ? "Nenhum resultado"
-                : `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)} de ${filtered.length} estações`}
+                : `${(data.pagination.page - 1) * PAGE_SIZE + 1}–${Math.min(data.pagination.page * PAGE_SIZE, data.data.length)} de ${data.pagination.total} estações`}
             </span>
-            <LastUpdated onRefresh={handleRefresh} />
           </div>
         )}
 
-        {!isLoading && totalPages > 1 && (
+        {!isLoading && !loading && data.pagination.totalPages > 1 && (
           <div className="flex items-center gap-1 ml-auto">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              onClick={() => fetchPage(data.pagination.page - 1)}
+              disabled={data.pagination.page === 1}
               className="p-1.5 rounded hover:bg-background transition-colors text-secondary-text disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={14} />
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            {Array.from(
+              { length: data.pagination.totalPages },
+              (_, i) => i + 1,
+            ).map((n) => (
               <button
                 key={n}
-                onClick={() => setPage(n)}
+                onClick={() => fetchPage(n)}
                 className={[
                   "w-6 h-6 rounded text-xs font-semibold transition-colors",
-                  n === currentPage
+                  n === data.pagination.page
                     ? "bg-primary text-white"
                     : "hover:bg-background text-secondary-text",
                 ].join(" ")}
@@ -175,8 +210,8 @@ export function StationsTable({
             ))}
 
             <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => fetchPage(data.pagination.page + 1)}
+              disabled={data.pagination.page === data.pagination.totalPages}
               className="p-1.5 rounded hover:bg-background transition-colors text-secondary-text disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight size={14} />

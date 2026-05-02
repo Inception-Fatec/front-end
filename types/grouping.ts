@@ -11,11 +11,9 @@ export type StationGrouping = {
   id_station: number;
 };
 
-
 export type GroupingWithStations = Grouping & {
   station_groupings: { id_station: number }[];
 };
-
 
 export type GroupingWithStationDetails = Grouping & {
   station_groupings: {

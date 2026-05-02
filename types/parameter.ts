@@ -6,6 +6,10 @@ export type ParameterType = {
   factor_value: number;
   offset_value: number;
   json_name: string;
+  linked_stations?: {
+    id: number;
+    name: string;
+  }[];
 };
 
 export type Parameter = {

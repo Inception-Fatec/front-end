@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "email e password são obrigatórios." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -23,22 +23,19 @@ export async function POST(req: NextRequest) {
     if (error || !user) {
       return NextResponse.json(
         { error: "Credenciais inválidas." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     if (!user.status) {
-      return NextResponse.json(
-        { error: "Usuário inativo." },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Usuário inativo." }, { status: 403 });
     }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return NextResponse.json(
         { error: "Credenciais inválidas." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -49,12 +46,12 @@ export async function POST(req: NextRequest) {
         email: user.email,
         role: user.role,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch {
     return NextResponse.json(
       { error: "Erro interno do servidor." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
