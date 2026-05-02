@@ -56,9 +56,9 @@ export function StationsTable({ stations, isLoading }: StationsTableProps) {
     const horas = Math.floor(minutos / 60);
     const dias = Math.floor(horas / 24);
     if (dias > 0) return `${dias} dia${dias > 1 ? "s" : ""} atrás`;
-    if (horas > 0) return `${horas} h atrás`;
-    if (minutos > 0) return `${minutos} min atrás`;
-    return `${segundos} s atrás`;
+    if (horas > 0) return `${horas}h atrás`;
+    if (minutos > 0) return `${minutos}min atrás`;
+    return `${segundos}s atrás`;
   }
 
   function TempoAtual({ date }: { date: string | null }) {
