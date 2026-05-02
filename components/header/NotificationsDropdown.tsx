@@ -13,7 +13,6 @@ import {
 import {
   AlertLogWithDetails,
   AlertSeverity,
-  PaginatedAlertLogs,
 } from "@/types/alert";
 
 const SEVERITY_STYLES: Record<
