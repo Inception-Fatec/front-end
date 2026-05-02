@@ -18,10 +18,7 @@ interface StationsTableProps {
   onRefresh: () => void;
 }
 
-export function StationsTable({
-  stations,
-  isLoading,
-}: StationsTableProps) {
+export function StationsTable({ stations, isLoading }: StationsTableProps) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<PaginatedStations>(stations);

@@ -10,10 +10,7 @@ import {
   AlertTriangle,
   ArrowRight,
 } from "lucide-react";
-import {
-  AlertLogWithDetails,
-  AlertSeverity,
-} from "@/types/alert";
+import { AlertLogWithDetails, AlertSeverity } from "@/types/alert";
 
 const SEVERITY_STYLES: Record<
   AlertSeverity,
