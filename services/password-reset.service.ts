@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { checkRateLimit } from "@/lib/rate-limit";
 import { generateToken, hashToken } from "@/lib/crypto";
 import { sendPasswordResetEmail, sendPasswordChangedEmail } from "@/lib/mail";
 import { findUserByEmail } from "@/repositories/user.repository";
@@ -14,7 +13,7 @@ import type { PasswordResetServiceResult } from "@/types/password-reset";
 
 export async function requestPasswordReset(
   email: string,
-  ip: string,
+  _ip: string, // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<PasswordResetServiceResult> {
   /*
   const ipLimit = await checkRateLimit(`ip:${ip}`);

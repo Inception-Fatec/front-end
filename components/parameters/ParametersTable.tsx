@@ -13,6 +13,7 @@ import { ParametersFilters } from "./ParametersFilters";
 import { CreateParameterModal } from "./CreateParameterModal";
 import { EditParameterModal } from "./EditParameterModal";
 import type { PaginatedParameters, ParameterType } from "@/types/parameter";
+import Image from "next/image";
 
 interface StationFilterOption {
   id: number;
@@ -386,9 +387,10 @@ export function ParametersTable({
             </div>
 
             <div className="relative min-h-[220px] lg:min-h-full">
-              <img
+              <Image
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHHPNROATU5v92_XnypaiNy6x5mqtUXY_TZrJcegKvXB6c3jM_NTWk6LDfpUDHpWvthivs72fI2ID630RpyRAXt3Ok0d6YhubagmUFH4aMlguWN4k3-U3ePp1XCD5tcLW6tnjGYxOtht-3Krric641rEfyXm71pMyXJFphZyRuwsDn4mLpL6lwfvTBKvvzWYbNbpTnI540l_P9yLXFw62q2W7AW1laGPgIIfer-NAvuhBjwmKwPBeRzLZ5UUiyxEeJEXbKON2ovEA"
                 alt="Painel de visualização"
+                fill
                 className="absolute inset-0 h-full w-full object-cover"
               />
               <div className="absolute inset-0 bg-background/45" />
