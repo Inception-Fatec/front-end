@@ -6,7 +6,7 @@ export async function register() {
     startReceptor();
 
     console.log("[Instrumentation] Iniciando sync MongoDB → Supabase...");
-    const { main } = await import("./services/sync-mogo-postgre");
+    const { main } = await import("./services/sync-mongo-postgre");
     main();
   }
 }
