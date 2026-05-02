@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { DateTime } from "luxon";
+import { MongoClient } from "mongodb";
 
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE ?? "100");
 const SLEEP_SECONDS = parseInt(process.env.SLEEP_SECONDS ?? "60");
@@ -10,11 +11,11 @@ const MONGO_URI = process.env.MONGODB_URI!;
 const MONGO_DB = process.env.MONGODB_DB_NAME || "api4";
 const MONGO_COLLECTION = process.env.MONGODB_COLLECTION_NAME || "raw_payloads";
 
-let mongoClient: any = null;
+let mongoClient: MongoClient | null = null;
 
-async function getCollection() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getCollection(): Promise<any> {
   if (!mongoClient) {
-    const { MongoClient } = require("mongodb");
     mongoClient = new MongoClient(MONGO_URI);
     await mongoClient.connect();
   }
@@ -121,7 +122,6 @@ async function processBatch(): Promise<number> {
   const documents = await collection.find().limit(BATCH_SIZE).toArray();
 
   let totalDocs = 0;
-  let totalInserted = 0;
   const idsToDelete: object[] = [];
 
   for (const doc of documents) {
@@ -186,10 +186,9 @@ async function processBatch(): Promise<number> {
       if (error) {
         continue;
       } else {
-        totalInserted += measurements.length;
         idsToDelete.push(docId);
       }
-    } catch (err) {
+    } catch {
       continue;
     }
   }
@@ -235,12 +234,12 @@ export async function main(): Promise<void> {
       } else {
         continue;
       }
-    } catch (err) {
+    } catch {
       continue;
     }
   }
 }
 
-main().catch((err) => {
+main().catch(() => {
   process.exit(1);
 });

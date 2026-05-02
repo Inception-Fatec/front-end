@@ -64,7 +64,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     Promise.all([
       getDashboardStats(),
       getAlertLogs({ page: 1, limit: 4, all: true }),
-      getAlertLogs({ page: 1, all: false }),
+      getAlertLogs({ page: 1, limit: 50, all: false }),
       getStations({ page: 1, limit: 4, search: "" }),
       getGroups(),
     ])
@@ -132,7 +132,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         async () => {
           const [al, n] = await Promise.all([
             getAlertLogs({ page: 1, limit: 4, all: true }),
-            getAlertLogs({ page: 1, all: false }),
+            getAlertLogs({ page: 1, limit: 50, all: false }),
           ]);
           if (isMounted.current) {
             setAlerts(al.data);
