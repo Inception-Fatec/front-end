@@ -14,7 +14,6 @@ interface CreateStationModalProps {
 }
 
 export function CreateStationModal({
-  sessionRole,
   onClose,
   onSuccess,
 }: CreateStationModalProps) {

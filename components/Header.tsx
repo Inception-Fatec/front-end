@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
@@ -8,7 +8,6 @@ import { useDashboard } from "@/context/DashboardContext";
 import { NotificationsDropdown } from "@/components/header/NotificationsDropdown";
 import { UserDropdown } from "@/components/header/UserDropdown";
 import { updateStatus } from "@/services/alert-logs";
-import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
 import { useSession } from "next-auth/react";
 
 interface HeaderProps {

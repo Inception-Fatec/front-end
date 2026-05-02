@@ -5,7 +5,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Search, ChevronLeft, ChevronRight, BarChart2 } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
-import { LastUpdated } from "./LastUpdated";
 import { Skeleton } from "./Skeleton";
 import type { PaginatedStations } from "@/types/station";
 import { getStations } from "@/services/stations";
@@ -19,11 +18,7 @@ interface StationsTableProps {
   onRefresh: () => void;
 }
 
-export function StationsTable({
-  stations,
-  isLoading,
-  onRefresh,
-}: StationsTableProps) {
+export function StationsTable({ stations, isLoading }: StationsTableProps) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<PaginatedStations>(stations);
@@ -67,7 +62,7 @@ export function StationsTable({
   }
 
   function TempoAtual({ date }: { date: string | null }) {
-    const [_, setTick] = useState(0);
+    const [, setTick] = useState(0);
 
     useEffect(() => {
       const i = setInterval(() => setTick((t) => t + 1), 1000);

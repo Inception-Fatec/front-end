@@ -22,7 +22,7 @@ interface AlertsTableProps {
 
 export function AlertsTable({ sessionRole }: AlertsTableProps) {
   const [search, setSearch] = useState("");
-  const [limit, setLimit] = useState(8);
+  const [limit] = useState(8);
   const [parameterTypeFilter, setParameterTypeFilter] = useState(0);
   const [parameterTypes, setParameterTypes] = useState<ParameterType[]>([]);
   const [severityFilter, setSeverityFilter] = useState("");
@@ -114,7 +114,7 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
     fetchPage(1);
     fetchParameterTypes();
     fetchStations();
-  }, [fetchPage, fetchParameterTypes]);
+  }, [fetchPage, fetchParameterTypes, fetchStations]);
 
   function handleSearch(value: string) {
     setSearch(value);

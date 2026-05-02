@@ -28,7 +28,7 @@ function timedifference(date_time: string) {
 }
 
 function TempoAtual({ date }: { date: string }) {
-  const [_, setTick] = useState(0);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     const i = setInterval(() => setTick((t) => t + 1), 1000);
