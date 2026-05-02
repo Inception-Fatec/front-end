@@ -25,7 +25,7 @@ export function AnalyticsChart({ chartData, isLoading }: AnalyticsChartProps) {
 
         const data: SeriesPoint[] = param.measurements
           .map((m): SeriesPoint => {
-            const ts = new Date(m.date_time).getTime();
+            const ts = new Date(m.date_time + "Z").getTime();
             if (isPressure) {
               return { x: ts, y: m.value / 1000, realValue: m.value };
             }

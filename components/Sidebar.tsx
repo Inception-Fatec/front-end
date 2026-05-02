@@ -14,7 +14,7 @@ import {
   X,
   Settings2,
 } from "lucide-react";
-import type { UserRole } from "@/types/api";
+import type { UserRole } from "@/types/user";
 
 interface NavItem {
   icon: React.ElementType;

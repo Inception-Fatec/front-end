@@ -38,3 +38,15 @@ export async function getAlertLogs({
   }
   return res.json();
 }
+
+export async function updateStatus(id?: number | null): Promise<void> {
+  const res = await fetch(`/api/alert-logs`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: id ?? null }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? "Erro ao atualizar status do alerta.");
+  }
+}

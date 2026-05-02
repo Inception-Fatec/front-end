@@ -10,7 +10,7 @@ import { DeleteAlertModal } from "./DeleteAlertModal";
 import { AlertFilters } from "./AlertFilters";
 import type { AlertWithParameters, PaginatedAlerts } from "@/types/alert";
 import type { ParameterType } from "@/types/parameter";
-import { UserRole } from "@/types/api";
+import type { UserRole } from "@/types/user";
 import { getAlerts, updateAlertStatus } from "@/services/alerts";
 import { getParameters } from "@/services/parameters";
 import { getStations } from "@/services/stations";

@@ -1,14 +1,41 @@
 // components/dashboard/RecentAlertsList.tsx
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { SeverityDot } from "./SeverityDot";
 import { Skeleton } from "./Skeleton";
-import type { RecentAlert } from "@/types/api";
+import { AlertLogWithDetails } from "@/types/alert";
 
 interface RecentAlertsListProps {
-  alerts: RecentAlert[];
+  alerts: AlertLogWithDetails[];
   isLoading: boolean;
+}
+
+function timedifference(date_time: string) {
+  if (!date_time) return "-";
+  const agora = new Date().getTime();
+  const data = new Date(date_time).getTime();
+  const diffMs = agora - data;
+  const segundos = Math.floor(diffMs / 1000);
+  const minutos = Math.floor(segundos / 60);
+  const horas = Math.floor(minutos / 60);
+  const dias = Math.floor(horas / 24);
+  if (dias > 0) return `${dias} dia${dias > 1 ? "s" : ""} atrás`;
+  if (horas > 0) return `${horas} h atrás`;
+  if (minutos > 0) return `${minutos} min atrás`;
+  return `${segundos} s atrás`;
+}
+
+function TempoAtual({ date }: { date: string }) {
+  const [_, setTick] = useState(0);
+
+  useEffect(() => {
+    const i = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(i);
+  }, []);
+
+  return <>{timedifference(date)}</>;
 }
 
 export function RecentAlertsList({ alerts, isLoading }: RecentAlertsListProps) {
@@ -22,7 +49,7 @@ export function RecentAlertsList({ alerts, isLoading }: RecentAlertsListProps) {
           Alertas Recentes
         </div>
         <button
-          onClick={() => router.push("/dashboard/alertas")}
+          onClick={() => router.push("/dashboard/alertas?tab=history")}
           className="text-xs text-primary hover:underline transition-colors"
         >
           Ver todos
@@ -48,13 +75,17 @@ export function RecentAlertsList({ alerts, isLoading }: RecentAlertsListProps) {
                 <SeverityDot severity={alert.severity} />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
-                    {alert.stationName}
+                    {alert.stations?.name}
                   </p>
                   <p className="text-xs text-secondary-text mt-0.5 leading-relaxed">
                     {alert.message}
                   </p>
+                  <p className="text-sm text-secondary-text truncate">
+                    Valor: {alert.measurement}{" "}
+                    {alert.parameters.parameter_types.symbol}
+                  </p>
                   <p className="text-[11px] text-secondary-text/60 mt-1 uppercase tracking-wide">
-                    {alert.timeAgo}
+                    <TempoAtual date={alert.created_at} />
                   </p>
                 </div>
               </div>

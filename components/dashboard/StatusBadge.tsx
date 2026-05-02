@@ -1,18 +1,8 @@
-import type { StationRow } from "@/types/api";
-
-const CONFIG: Record<
-  StationRow["status"],
-  { label: string; cls: string; dot: string }
-> = {
+const CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
   online: {
     label: "Online",
     cls: "bg-green-500/15 text-green-400 border-green-500/30",
     dot: "bg-green-400",
-  },
-  alert: {
-    label: "Alerta",
-    cls: "bg-alert/15 text-alert border-alert/30",
-    dot: "bg-alert",
   },
   offline: {
     label: "Offline",
@@ -21,7 +11,7 @@ const CONFIG: Record<
   },
 };
 
-export function StatusBadge({ status }: { status: StationRow["status"] }) {
+export function StatusBadge({ status }: { status: string }) {
   const { label, cls, dot } = CONFIG[status];
   return (
     <span

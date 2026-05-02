@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { CreateStationModal } from "./CreateStationModal";
 import { EditStationModal } from "./EditStationModal";
@@ -11,6 +11,7 @@ import { ParameterIcon } from "@/components/alerts/ParameterIcon";
 import { getStations } from "@/services/stations";
 import type { PaginatedStations, StationWithParameters } from "@/types/station";
 import type { UserRole } from "@/types/user";
+import { useSearchParams } from "next/navigation";
 
 interface StationsTableProps {
   initialData: PaginatedStations;
@@ -81,6 +82,18 @@ export function StationsTable({
   const [selectedStationId, setSelectedStationId] = useState<number | null>(
     null,
   );
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const stationIdParam = searchParams.get("stationId");
+    if (stationIdParam) {
+      const id = Number(stationIdParam);
+      if (!isNaN(id)) {
+        setSelectedStationId(id);
+        window.history.replaceState({}, "", "/dashboard/estacoes");
+      }
+    }
+  }, [searchParams]);
 
   const fetchPage = useCallback(
     async (page: number, s = search, st = statusFilter) => {
