@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { RoleBadge } from "./RoleBadge";
 import { UserAvatar } from "./UserAvatar";
 import { CreateUserModal } from "./CreateUserModal";
@@ -10,7 +10,6 @@ import { DeleteUserModal } from "./DeleteUserModal";
 import { UserFilters } from "./UserFilters";
 import { getUsers } from "@/services/users";
 import type { User, UserRole, PaginatedUsers } from "@/types/user";
-import { Pagination } from "@/components/Pagination";
 
 interface UsersTableProps {
   initialData: PaginatedUsers;
@@ -220,12 +219,41 @@ export function UsersTable({
                 ? "Nenhum resultado"
                 : `Exibindo ${(data.page - 1) * 8 + 1}–${Math.min(data.page * 8, data.total)} de ${data.total} usuários`}
             </p>
-            <Pagination
-              currentPage={data.page}
-              totalPages={data.totalPages}
-              loading={loading}
-              onPageChange={fetchPage}
-            />
+            {data.totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => fetchPage(data.page - 1)}
+                  disabled={data.page === 1 || loading}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(
+                  (n) => (
+                    <button
+                      key={n}
+                      onClick={() => fetchPage(n)}
+                      disabled={loading}
+                      className={[
+                        "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
+                        n === data.page
+                          ? "bg-primary text-white"
+                          : "border border-border text-secondary-text hover:bg-background",
+                      ].join(" ")}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
+                <button
+                  onClick={() => fetchPage(data.page + 1)}
+                  disabled={data.page === data.totalPages || loading}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
