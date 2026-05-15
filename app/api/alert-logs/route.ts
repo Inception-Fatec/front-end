@@ -12,11 +12,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const all = searchParams.get("all") === "true";
     const limit = Math.min(
       Math.max(Number(searchParams.get("limit") || 5), 1),
-      50,
+      50
     );
-    const all = searchParams.get("all") === "true";
     const search = searchParams.get("search") || "";
     const parameterType = Number(searchParams.get("parameterType") || 0);
     const severity = searchParams.get("severity") || "";
@@ -25,37 +25,30 @@ export async function GET(req: NextRequest) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabaseAdmin
-      .from("alert_logs")
-      .select(
-        `
-    *,
-    stations (name),
-    parameters (id_parameter_type, parameter_types (name, unit, symbol)),
-    user_alerts${all ? "!left" : "!inner"} ( id_user, seen )
-  `,
-        { count: "exact" },
-      )
-      .order("created_at", { ascending: false });
+    const baseSelect = `
+      *,
+      stations (name),
+      parameters (id_parameter_type, parameter_types (name, unit, symbol))
+    `;
 
-    if (!all) {
-      query = query
-        .eq("user_alerts.id_user", session.user.id)
-        .eq("user_alerts.seen", false);
-    }
+    let query = all
+      ? supabaseAdmin
+          .from("alert_logs")
+          .select(baseSelect, { count: "exact" })
+          .order("created_at", { ascending: false })
+      : supabaseAdmin
+          .from("alert_logs")
+          .select(`${baseSelect}, user_alerts!inner ( id_user, seen )`, { count: "exact" })
+          .order("created_at", { ascending: false })
+          .eq("user_alerts.id_user", session.user.id)
+          .eq("user_alerts.seen", false);
 
     if (search) {
-      query = query.ilike("name", `%${search}%`);
+      query = query.ilike("stations.name", `%${search}%`);
     }
 
     if (parameterType) {
-      const { data: matchingParams } = await supabaseAdmin
-        .from("parameters")
-        .select("id")
-        .eq("id_parameter_type", parameterType);
-
-      const paramIds = matchingParams?.map((p) => p.id) ?? [];
-      query = query.in("id_parameter", paramIds.length ? paramIds : [-1]);
+      query = query.eq("parameters.id_parameter_type", parameterType);
     }
 
     if (severity) {
@@ -70,16 +63,17 @@ export async function GET(req: NextRequest) {
 
     const { data, error, count } = await query;
     if (error) throw error;
+
     return NextResponse.json(
       {
         data: data,
         pagination: {
           page,
           limit,
-          total: count,
+          total: count ?? 0,
           totalPages: Math.ceil((count || 0) / limit),
         },
-      } as PaginatedAlertLogs,
+      } satisfies PaginatedAlertLogs,
       { status: 200 },
     );
   } catch (error) {
