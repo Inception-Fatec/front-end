@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { CreateStationModal } from "./CreateStationModal";
 import { EditStationModal } from "./EditStationModal";
 import { DeleteStationModal } from "./DeleteStationModal";
@@ -12,6 +12,7 @@ import { getStations } from "@/services/stations";
 import type { PaginatedStations, StationWithParameters } from "@/types/station";
 import type { UserRole } from "@/types/user";
 import { useSearchParams } from "next/navigation";
+import { Pagination } from "@/components/Pagination";
 
 interface StationsTableProps {
   initialData: PaginatedStations;
@@ -272,41 +273,12 @@ export function StationsTable({
                 ? "Nenhum resultado"
                 : `Exibindo ${(page - 1) * 8 + 1}–${Math.min(page * 8, total)} de ${total} estações`}
             </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => fetchPage(page - 1)}
-                  disabled={page === 1 || loading}
-                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (n) => (
-                    <button
-                      key={n}
-                      onClick={() => fetchPage(n)}
-                      disabled={loading}
-                      className={[
-                        "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
-                        n === page
-                          ? "bg-primary text-white"
-                          : "border border-border text-secondary-text hover:bg-background",
-                      ].join(" ")}
-                    >
-                      {n}
-                    </button>
-                  ),
-                )}
-                <button
-                  onClick={() => fetchPage(page + 1)}
-                  disabled={page === totalPages || loading}
-                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              loading={loading}
+              onPageChange={fetchPage}
+            />
           </div>
         </div>
       </div>
