@@ -1,19 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Pencil,
-  Plus,
-  Settings,
-} from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { getParameters } from "@/services/parameters";
 import { ParametersFilters } from "./ParametersFilters";
 import { CreateParameterModal } from "./CreateParameterModal";
 import { EditParameterModal } from "./EditParameterModal";
 import type { PaginatedParameters, ParameterType } from "@/types/parameter";
-import Image from "next/image";
+import { Pagination } from "../Pagination";
 
 interface StationFilterOption {
   id: number;
@@ -190,7 +184,6 @@ export function ParametersTable({
           </div>
         </div>
 
-        {/* Filtros */}
         <ParametersFilters
           search={search}
           stationFilter={stationFilter}
@@ -199,7 +192,6 @@ export function ParametersTable({
           onStationFilter={handleStationFilter}
         />
 
-        {/* Tabela */}
         <div className="bg-card-background border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -297,104 +289,18 @@ export function ParametersTable({
             </table>
           </div>
 
-          {/* Footer com paginação */}
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border">
             <p className="text-[11px] text-secondary-text">
               {data.pagination.total === 0
                 ? "Nenhum resultado"
                 : `Exibindo ${(data.pagination.page - 1) * PAGE_SIZE + 1}–${Math.min(data.pagination.page * PAGE_SIZE, data.pagination.total)} de ${data.pagination.total} parâmetros`}
             </p>
-            {data.pagination.totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => fetchPage(data.pagination.page - 1)}
-                  disabled={data.pagination.page === 1 || loading}
-                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from(
-                  { length: data.pagination.totalPages },
-                  (_, i) => i + 1,
-                ).map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => fetchPage(n)}
-                    disabled={loading}
-                    className={[
-                      "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
-                      n === data.pagination.page
-                        ? "bg-primary text-white"
-                        : "border border-border text-secondary-text hover:bg-background",
-                    ].join(" ")}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  onClick={() => fetchPage(data.pagination.page + 1)}
-                  disabled={
-                    data.pagination.page === data.pagination.totalPages ||
-                    loading
-                  }
-                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border overflow-hidden bg-card-background/60">
-          <div className="grid grid-cols-1 lg:grid-cols-3">
-            <div className="lg:col-span-2 p-6 md:p-7">
-              <div className="flex items-start gap-3">
-                <Settings size={18} className="text-primary mt-1 shrink-0" />
-                <div className="space-y-3">
-                  <h3 className="text-2xl font-semibold text-foreground leading-tight">
-                    Guia de Padronização
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">
-                        Temperatura:
-                      </span>{" "}
-                      Graus Celsius (°C)
-                    </div>
-                    <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">
-                        Pressão:
-                      </span>{" "}
-                      Hectopascal (hPa)
-                    </div>
-                    <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">
-                        Umidade:
-                      </span>{" "}
-                      Percentagem (%)
-                    </div>
-                    <div className="text-sm text-secondary-text">
-                      <span className="font-medium text-foreground">
-                        Vento:
-                      </span>{" "}
-                      Metros por segundo (m/s)
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative min-h-[220px] lg:min-h-full">
-              <Image
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHHPNROATU5v92_XnypaiNy6x5mqtUXY_TZrJcegKvXB6c3jM_NTWk6LDfpUDHpWvthivs72fI2ID630RpyRAXt3Ok0d6YhubagmUFH4aMlguWN4k3-U3ePp1XCD5tcLW6tnjGYxOtht-3Krric641rEfyXm71pMyXJFphZyRuwsDn4mLpL6lwfvTBKvvzWYbNbpTnI540l_P9yLXFw62q2W7AW1laGPgIIfer-NAvuhBjwmKwPBeRzLZ5UUiyxEeJEXbKON2ovEA"
-                alt="Painel de visualização"
-                fill
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-background/45" />
-            </div>
+            <Pagination
+              currentPage={data.pagination.page}
+              totalPages={data.pagination.totalPages}
+              loading={loading}
+              onPageChange={fetchPage}
+            />
           </div>
         </div>
       </div>
