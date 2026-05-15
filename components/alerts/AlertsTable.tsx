@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { SeverityBadge } from "./SeverityBadge";
 import { ParameterIcon } from "./ParameterIcon";
 import { CreateAlertModal } from "./CreateAlertModal";
@@ -15,7 +15,6 @@ import { getAlerts, updateAlertStatus } from "@/services/alerts";
 import { getParameters } from "@/services/parameters";
 import { getStations } from "@/services/stations";
 import { StationWithParameters } from "@/types/station";
-import { Pagination } from "@/components/Pagination";
 
 interface AlertsTableProps {
   sessionRole: UserRole;
@@ -335,12 +334,45 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
                 ? "Nenhum resultado"
                 : `Exibindo ${(data.pagination.page - 1) * 8 + 1}–${Math.min(data.pagination.page * 8, data.pagination.total)} de ${data.pagination.total} alertas`}
             </p>
-            <Pagination
-              currentPage={data.pagination.page}
-              totalPages={data.pagination.totalPages}
-              loading={loading}
-              onPageChange={fetchPage}
-            />
+            {data.pagination.totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => fetchPage(data.pagination.page - 1)}
+                  disabled={data.pagination.page === 1 || loading}
+                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                {Array.from(
+                  { length: data.pagination.totalPages },
+                  (_, i) => i + 1,
+                ).map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => fetchPage(n)}
+                    disabled={loading}
+                    className={[
+                      "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
+                      n === data.pagination.page
+                        ? "bg-primary text-white"
+                        : "border border-border text-secondary-text hover:bg-background",
+                    ].join(" ")}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => fetchPage(data.pagination.page + 1)}
+                  disabled={
+                    data.pagination.page === data.pagination.totalPages ||
+                    loading
+                  }
+                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
