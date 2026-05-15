@@ -19,74 +19,119 @@ const guideTopics: GuideTopic[] = [
   {
     title: "Termometria",
     definition: "Medição da temperatura do ar, da água ou do solo.",
-    scientificContext: "A termometria estuda a medição de temperatura utilizando propriedades térmicas dos materiais. A temperatura é uma medida da energia cinética média das moléculas e é fundamental para entender processos atmosféricos, oceanográficos e terrestres. Estações meteorológicas medem temperatura para análise climática, proteção de cultivos e controle industrial.",
+    scientificContext:
+      "A termometria estuda a medição de temperatura utilizando propriedades térmicas dos materiais. A temperatura é uma medida da energia cinética média das moléculas e é fundamental para entender processos atmosféricos, oceanográficos e terrestres. Estações meteorológicas medem temperatura para análise climática, proteção de cultivos e controle industrial.",
     unit: "Temperatura",
     symbol: "°C",
     range: "-40°C a +60°C (típico em estações meteorológicas)",
     accuracy: "±0,5°C a ±2°C (depende do sensor)",
     standards: ["ISO 3864", "WMO nº 8", "Normas meteorológicas internacionais"],
-    applications: ["Monitoramento climático", "Proteção de cultivos", "Controle industrial", "Meteorologia"],
+    applications: [
+      "Monitoramento climático",
+      "Proteção de cultivos",
+      "Controle industrial",
+      "Meteorologia",
+    ],
     sensors: ["DHT22", "BME280", "DS18B20"],
   },
   {
     title: "Higrometria",
     definition: "Medição da umidade relativa do ar.",
-    scientificContext: "A higrometria quantifica o conteúdo de vapor de água na atmosfera. A umidade relativa é a proporção entre a quantidade de vapor de água presente e a quantidade máxima que o ar pode conter naquela temperatura. É essencial para agricultura de precisão, meteorologia e sistemas HVAC, afetando evaporação, condensação e processos biológicos.",
+    scientificContext:
+      "A higrometria quantifica o conteúdo de vapor de água na atmosfera. A umidade relativa é a proporção entre a quantidade de vapor de água presente e a quantidade máxima que o ar pode conter naquela temperatura. É essencial para agricultura de precisão, meteorologia e sistemas HVAC, afetando evaporação, condensação e processos biológicos.",
     unit: "Umidade relativa",
     symbol: "% RH",
     range: "0% a 100% UR",
     accuracy: "±2% a ±5% UR (depende do sensor)",
     standards: ["ISO 4, Parte 1", "WMO nº 8", "Recomendações meteorológicas"],
-    applications: ["Agricultura de precisão", "Meteorologia", "Controle ambiental", "Previsão de conforto térmico"],
+    applications: [
+      "Agricultura de precisão",
+      "Meteorologia",
+      "Controle ambiental",
+      "Previsão de conforto térmico",
+    ],
     sensors: ["DHT22", "BME280", "SHT31"],
   },
   {
     title: "Barometria",
-    definition: "Medição da pressão atmosférica para análise de variações climáticas.",
-    scientificContext: "A barometria mede a pressão exercida pela coluna de ar sobre a superfície terrestre. Variações de pressão indicam mudanças no sistema atmosférico e são fundamentais para previsão meteorológica. Pressão baixa geralmente indica tempo instável, enquanto pressão alta indica estabilidade. Também é usada para determinar altitude.",
+    definition:
+      "Medição da pressão atmosférica para análise de variações climáticas.",
+    scientificContext:
+      "A barometria mede a pressão exercida pela coluna de ar sobre a superfície terrestre. Variações de pressão indicam mudanças no sistema atmosférico e são fundamentais para previsão meteorológica. Pressão baixa geralmente indica tempo instável, enquanto pressão alta indica estabilidade. Também é usada para determinar altitude.",
     unit: "Pressão atmosférica",
     symbol: "hPa",
     range: "300 hPa a 1100 hPa",
     accuracy: "±1 hPa a ±2 hPa",
-    standards: ["WMO nº 8", "ISO 6149", "Padrões meteorológicos internacionais"],
-    applications: ["Previsão meteorológica", "Determinação de altitude", "Análise sinótica", "Aviação"],
+    standards: [
+      "WMO nº 8",
+      "ISO 6149",
+      "Padrões meteorológicos internacionais",
+    ],
+    applications: [
+      "Previsão meteorológica",
+      "Determinação de altitude",
+      "Análise sinótica",
+      "Aviação",
+    ],
     sensors: ["BME280", "BMP280", "BME680"],
   },
   {
     title: "Anemometria - Velocidade",
     definition: "Medição da velocidade do vento.",
-    scientificContext: "A anemometria quantifica a velocidade horizontal do vento próximo à superfície. A velocidade do vento é crítica para energia eólica, aviação e previsão de desastres naturais. Anemômetros de conchas são mais comuns em estações meteorológicas convencionais, enquanto anemômetros ultrassônicos oferecem melhor resolução temporal.",
+    scientificContext:
+      "A anemometria quantifica a velocidade horizontal do vento próximo à superfície. A velocidade do vento é crítica para energia eólica, aviação e previsão de desastres naturais. Anemômetros de conchas são mais comuns em estações meteorológicas convencionais, enquanto anemômetros ultrassônicos oferecem melhor resolução temporal.",
     unit: "Velocidade do vento",
     symbol: "km/h",
     range: "0 a 200+ km/h (depende do sensor)",
     accuracy: "±0,3 m/s ou ±1% da leitura",
     standards: ["WMO nº 8", "ISO 4, Parte 1", "Normas de aerodinâmica"],
-    applications: ["Energia renovável (eólica)", "Meteorologia", "Aviação", "Dispersão de poluentes"],
+    applications: [
+      "Energia renovável (eólica)",
+      "Meteorologia",
+      "Aviação",
+      "Dispersão de poluentes",
+    ],
     sensors: ["Anemômetro de conchas", "Anemômetro ultrassônico"],
   },
   {
     title: "Anemometria - Direção",
     definition: "Medição da direção do vento.",
-    scientificContext: "A direção do vento é medida como ângulo em relação ao norte geográfico (0° a 360°). A veleta fornece a orientação do vento local próximo à estação. Dados de direção são essenciais para meteorologia sinótica, modelagem de dispersão atmosférica e navegação aérea.",
+    scientificContext:
+      "A direção do vento é medida como ângulo em relação ao norte geográfico (0° a 360°). A veleta fornece a orientação do vento local próximo à estação. Dados de direção são essenciais para meteorologia sinótica, modelagem de dispersão atmosférica e navegação aérea.",
     unit: "Direção do vento",
     symbol: "°",
     range: "0° a 360° (com relação ao norte)",
     accuracy: "±5° a ±10°",
     standards: ["WMO nº 8", "ISO 4, Parte 1", "Convenções meteorológicas"],
-    applications: ["Meteorologia sinótica", "Aviação", "Dispersão de poluentes", "Análise climatológica"],
+    applications: [
+      "Meteorologia sinótica",
+      "Aviação",
+      "Dispersão de poluentes",
+      "Análise climatológica",
+    ],
     sensors: ["Veleta", "Biruta"],
   },
   {
     title: "Pluviometria",
     definition: "Medição da precipitação acumulada na estação.",
-    scientificContext: "A pluviometria quantifica a quantidade de chuva (e outros tipos de precipitação) que cai em uma área. Pluviômetros basculantes registram automaticamente eventos de precipitação, essenciais para hidrologia, agricultura e previsão de inundações. A resolução temporal permite detectar intensidade de chuva.",
+    scientificContext:
+      "A pluviometria quantifica a quantidade de chuva (e outros tipos de precipitação) que cai em uma área. Pluviômetros basculantes registram automaticamente eventos de precipitação, essenciais para hidrologia, agricultura e previsão de inundações. A resolução temporal permite detectar intensidade de chuva.",
     unit: "Chuva",
     symbol: "mm",
     range: "0 a 500+ mm por evento",
     accuracy: "±5% a ±10%",
     standards: ["WMO nº 8", "ISO 4680", "Normas hidrológicas"],
-    applications: ["Hidrologia", "Agricultura de precisão", "Previsão de inundações", "Estudos climáticos"],
-    sensors: ["Pluviômetro basculante", "Pluviômetro de báscula", "Pluviômetro coletor"],
+    applications: [
+      "Hidrologia",
+      "Agricultura de precisão",
+      "Previsão de inundações",
+      "Estudos climáticos",
+    ],
+    sensors: [
+      "Pluviômetro basculante",
+      "Pluviômetro de báscula",
+      "Pluviômetro coletor",
+    ],
   },
 ];
 
@@ -100,7 +145,8 @@ export default function TutorialPage() {
             Guia de Padronização
           </h1>
           <p className="text-sm text-secondary-text mt-1">
-            Referência técnica e científica dos parâmetros meteorológicos do sistema
+            Referência técnica e científica dos parâmetros meteorológicos do
+            sistema
           </p>
         </div>
         <button
@@ -112,7 +158,10 @@ export default function TutorialPage() {
         </button>
       </div>
 
-      <div className="rounded-2xl border border-border overflow-hidden bg-card-background/60" data-printable="guide">
+      <div
+        className="rounded-2xl border border-border overflow-hidden bg-card-background/60"
+        data-printable="guide"
+      >
         <div className="p-6 md:p-7">
           <div className="flex items-start gap-3 mb-6">
             <Settings size={18} className="text-primary mt-1 shrink-0" />
@@ -223,7 +272,11 @@ export default function TutorialPage() {
               Fórmula de Calibração / ETL
             </p>
             <p className="text-sm text-secondary-text leading-relaxed">
-              Use a conversão padronizada <span className="font-semibold text-foreground">y = (bruto × factor_value) + offset_value</span> para transformar a leitura do sensor em valor final tratado.
+              Use a conversão padronizada{" "}
+              <span className="font-semibold text-foreground">
+                y = (bruto × factor_value) + offset_value
+              </span>{" "}
+              para transformar a leitura do sensor em valor final tratado.
             </p>
           </div>
         </div>
