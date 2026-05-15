@@ -8,7 +8,7 @@ import { Skeleton } from "./Skeleton";
 import { AlertLogWithDetails } from "@/types/alert";
 
 interface RecentAlertsListProps {
-  alerts: AlertLogWithDetails[];
+  alerts?: AlertLogWithDetails[];
   isLoading: boolean;
 }
 
@@ -38,7 +38,7 @@ function TempoAtual({ date }: { date: string }) {
   return <>{timedifference(date)}</>;
 }
 
-export function RecentAlertsList({ alerts, isLoading }: RecentAlertsListProps) {
+export function RecentAlertsList({ alerts = [], isLoading }: RecentAlertsListProps) {
   const router = useRouter();
 
   return (
