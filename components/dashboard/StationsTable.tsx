@@ -15,7 +15,6 @@ const PAGE_SIZE = 4;
 interface StationsTableProps {
   stations: PaginatedStations;
   isLoading: boolean;
-  onRefresh: () => void;
 }
 
 export function StationsTable({ stations, isLoading }: StationsTableProps) {
