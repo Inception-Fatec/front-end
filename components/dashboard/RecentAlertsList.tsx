@@ -38,7 +38,10 @@ function TempoAtual({ date }: { date: string }) {
   return <>{timedifference(date)}</>;
 }
 
-export function RecentAlertsList({ alerts = [], isLoading }: RecentAlertsListProps) {
+export function RecentAlertsList({
+  alerts = [],
+  isLoading,
+}: RecentAlertsListProps) {
   const router = useRouter();
 
   return (

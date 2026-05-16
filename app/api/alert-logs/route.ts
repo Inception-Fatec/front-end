@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const all = searchParams.get("all") === "true";
     const limit = Math.min(
       Math.max(Number(searchParams.get("limit") || 5), 1),
-      50
+      50,
     );
     const search = searchParams.get("search") || "";
     const parameterType = Number(searchParams.get("parameterType") || 0);
@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
           .order("created_at", { ascending: false })
       : supabaseAdmin
           .from("alert_logs")
-          .select(`${baseSelect}, user_alerts!inner ( id_user, seen )`, { count: "exact" })
+          .select(`${baseSelect}, user_alerts!inner ( id_user, seen )`, {
+            count: "exact",
+          })
           .order("created_at", { ascending: false })
           .eq("user_alerts.id_user", session.user.id)
           .eq("user_alerts.seen", false);

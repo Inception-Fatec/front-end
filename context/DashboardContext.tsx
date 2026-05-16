@@ -32,7 +32,6 @@ interface DashboardContextValue {
   params: ParameterSummary[];
   isLoading: boolean;
   error: string | null;
-  refresh: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -55,7 +54,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const isFirstLoad = useRef(true);
   const isMounted = useRef(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAll = useCallback(async () => {
     if (isFirstLoad.current) setIsLoading(true);
@@ -100,11 +98,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  const refresh = useCallback(() => {
-    fetchAll();
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, [fetchAll]);
-
   useEffect(() => {
     isMounted.current = true;
 
@@ -116,7 +109,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted.current = false;
-      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchAll]);
 
@@ -200,7 +192,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "measurements" },
         (payload) => {
-
           if (!isMounted.current) return;
 
           const measurement = payload.new as Measurement;
@@ -218,7 +209,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "groupings" },
         (payload) => {
-
           if (!isMounted.current) return;
           setStats((prev) => {
             if (!prev) return prev;
@@ -258,7 +248,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         params,
         isLoading,
         error,
-        refresh,
       }}
     >
       {children}
