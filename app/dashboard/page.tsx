@@ -43,8 +43,7 @@ function TempoAtual({ date }: { date: string }) {
 export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { stats, stations, alerts, groups, isLoading, error, refresh } =
-    useDashboard();
+  const { stats, stations, alerts, groups, isLoading, error } = useDashboard();
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -97,11 +96,7 @@ export default function DashboardPage() {
       {/* Tabela de estações + Alertas recentes */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2">
-          <StationsTable
-            stations={stations}
-            isLoading={isLoading}
-            onRefresh={refresh}
-          />
+          <StationsTable stations={stations} isLoading={isLoading} />
         </div>
         <RecentAlertsList alerts={alerts} isLoading={isLoading} />
       </div>
