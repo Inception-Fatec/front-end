@@ -284,6 +284,12 @@ export default function TutorialPage() {
 
       <style jsx global>{`
         @media print {
+          html,
+          body {
+            height: auto !important;
+            overflow: visible !important;
+          }
+
           body * {
             visibility: hidden !important;
           }
@@ -294,12 +300,24 @@ export default function TutorialPage() {
           }
 
           [data-printable="guide"] {
-            position: absolute;
-            inset: 0;
+            position: static !important;
             width: 100%;
-            height: 100%;
+            height: auto !important;
+            overflow: visible !important;
             background: white !important;
             color: black !important;
+          }
+
+          [data-dashboard-shell],
+          [data-dashboard-main] {
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          [data-dashboard-shell] > div,
+          [data-dashboard-main] > div {
+            height: auto !important;
+            overflow: visible !important;
           }
 
           [data-no-print] {
@@ -319,6 +337,13 @@ export default function TutorialPage() {
 
           [data-printable="guide"] .text-secondary-text {
             color: #333 !important;
+          }
+
+          [data-printable="guide"] > div,
+          [data-printable="guide"] .rounded-xl,
+          [data-printable="guide"] .rounded-2xl {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>
