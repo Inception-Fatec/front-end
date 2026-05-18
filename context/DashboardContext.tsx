@@ -21,8 +21,7 @@ import { getStations } from "@/services/stations";
 import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
 import { PaginatedStations } from "@/types/station";
 import { supabase } from "@/lib/supabaseClient";
-
-const POLL_INTERVAL_MS = 60_000;
+import { Measurement } from "@/types/measurement";
 
 interface DashboardContextValue {
   stats: DashboardStats | null;
@@ -33,7 +32,6 @@ interface DashboardContextValue {
   params: ParameterSummary[];
   isLoading: boolean;
   error: string | null;
-  refresh: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -56,7 +54,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const isFirstLoad = useRef(true);
   const isMounted = useRef(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAll = useCallback(async () => {
     if (isFirstLoad.current) setIsLoading(true);
@@ -91,8 +88,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    Promise.all([getParameterSummaries()])
-      .then(([p]) => {
+    getParameterSummaries()
+      .then((p) => {
         if (!isMounted.current) return;
         setParams(p);
       })
@@ -100,12 +97,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         console.error("[DashboardContext] fetch error (grupo 2):", err);
       });
   }, []);
-
-  const refresh = useCallback(() => {
-    fetchAll();
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(fetchAll, POLL_INTERVAL_MS);
-  }, [fetchAll]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -115,11 +106,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     };
 
     void initialize();
-    intervalRef.current = setInterval(() => void fetchAll(), POLL_INTERVAL_MS);
 
     return () => {
       isMounted.current = false;
-      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchAll]);
 
@@ -142,38 +131,103 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "stations" },
+        {
+          event: "*",
+          schema: "public",
+          table: "stations",
+        },
         async (payload) => {
-          console.log("stations realtime:", payload);
-
-          const [st, s] = await Promise.all([
+          const [st] = await Promise.all([
             getStations({ page: 1, limit: 4, search: "" }),
-            getDashboardStats(),
           ]);
 
           if (!isMounted.current) return;
 
           setStations(st);
-          setStats(s);
+
+          setStats((prev) => {
+            if (!prev) return prev;
+
+            let totalStations = prev.totalStations;
+            let activeStations = prev.activeStations;
+
+            if (payload.eventType === "INSERT") {
+              totalStations += 1;
+
+              if (payload.new.status === true) {
+                activeStations += 1;
+              }
+            }
+
+            if (payload.eventType === "DELETE") {
+              totalStations -= 1;
+
+              if (payload.old.status === true) {
+                activeStations -= 1;
+              }
+            }
+
+            if (payload.eventType === "UPDATE") {
+              const oldStatus = payload.old.status;
+              const newStatus = payload.new.status;
+
+              if (oldStatus === true && newStatus === false) {
+                activeStations -= 1;
+              }
+
+              if (oldStatus === false && newStatus === true) {
+                activeStations += 1;
+              }
+            }
+
+            return {
+              ...prev,
+              totalStations,
+              activeStations,
+            };
+          });
         },
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "measurements" },
-        async (payload) => {
-          console.log("measurements realtime:", payload);
+        (payload) => {
+          if (!isMounted.current) return;
 
-          const s = await getDashboardStats();
+          const measurement = payload.new as Measurement;
+          setStats((prev) => {
+            if (!prev) return prev;
 
-          if (isMounted.current) setStats(s);
+            return {
+              ...prev,
+              lastUpdate: measurement.date_time,
+            };
+          });
         },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "groupings" },
-        async () => {
-          const s = await getDashboardStats();
-          if (isMounted.current) setStats(s);
+        (payload) => {
+          if (!isMounted.current) return;
+          setStats((prev) => {
+            if (!prev) return prev;
+
+            let totalGroups = prev.totalGroups;
+
+            if (payload.eventType === "INSERT") {
+              totalGroups += 1;
+            }
+
+            if (payload.eventType === "DELETE") {
+              totalGroups -= 1;
+            }
+
+            return {
+              ...prev,
+              totalGroups,
+            };
+          });
         },
       )
       .subscribe();
@@ -194,7 +248,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         params,
         isLoading,
         error,
-        refresh,
       }}
     >
       {children}
