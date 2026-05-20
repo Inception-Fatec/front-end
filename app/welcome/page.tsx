@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 
 export default function WelcomePage() {
-  // ADICIONADO: update para atualizar a sessão e router para navegação
   const { data: session, update } = useSession();
   const router = useRouter();
 
@@ -20,13 +19,11 @@ export default function WelcomePage() {
     e.preventDefault();
     setError("");
 
-    // 1. Validação de tamanho no lado do cliente
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
 
-    // 2. Validação de correspondência
     if (password !== confirmPassword) {
       setError("As senhas não coincidem. Verifique e tente novamente.");
       return;
@@ -35,7 +32,6 @@ export default function WelcomePage() {
     setIsLoading(true);
 
     try {
-      // 3. Chamada à nossa nova rota de API
       const response = await fetch("/api/users/first-access", {
         method: "POST",
         headers: {
@@ -50,11 +46,8 @@ export default function WelcomePage() {
         throw new Error(data.error || "Houve um erro ao atualizar a senha.");
       }
 
-      // 4. O PULO DO GATO: Atualiza o token JWT no cliente
-      // Isto vai disparar o callback 'jwt' com o trigger === "update" no auth.ts
       await update({ first_access: false });
 
-      // 5. Encaminha o utilizador diretamente para o Dashboard seguro
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
