@@ -58,9 +58,13 @@ export default function WelcomePage() {
       router.push("/dashboard");
       router.refresh();
       
-    } catch (err: any) {
-      setError(err.message || "Erro de conexão com o servidor.");
-      setIsLoading(false);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Erro de conexão com o servidor.");
+      }
+      setIsLoading(false)
     }
   };
 
