@@ -41,3 +41,26 @@ export async function updateUserPassword(
 
   return true;
 }
+
+export async function completeFirstAccess(
+  userId: number,
+  hashedPassword: string,
+): Promise<boolean> {
+  const { error } = await supabaseAdmin
+    .from("users")
+    .update({
+      password: hashedPassword,
+      first_access: false,
+    })
+    .eq("id", userId);
+
+  if (error) {
+    console.error(
+      "[user.repository] Erro ao completar primeiro acesso:",
+      error,
+    );
+    return false;
+  }
+
+  return true;
+}
