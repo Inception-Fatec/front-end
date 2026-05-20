@@ -16,7 +16,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const { data: user, error } = await supabaseAdmin
           .from("users")
-          .select("id, name, email, password, role, status")
+          .select("id, name, email, password, role, status, first_access")
           .eq("email", credentials.email)
           .single();
 
@@ -25,9 +25,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        if (!user) return null;
-
-        if (!user.status) return null;
+        if (!user || !user.status) return null;
 
         const match = await bcrypt.compare(
           credentials.password as string,
@@ -40,22 +38,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role as UserRole,
+          first_access: user.first_access,
         };
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.first_access = user.first_access; 
       }
+
+      if (trigger === "update" && session?.first_access !== undefined) {
+        token.first_access = session.first_access;
+      }
+
       return token;
+
     },
     async session({ session, token }) {
       session.user.id = token.id as string;
       session.user.role = token.role as UserRole;
+      session.user.first_access = token.first_access as boolean;
       return session;
     },
   },
