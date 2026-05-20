@@ -9,7 +9,7 @@ export default function WelcomePage() {
   // ADICIONADO: update para atualizar a sessão e router para navegação
   const { data: session, update } = useSession();
   const router = useRouter();
-  
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -57,14 +57,13 @@ export default function WelcomePage() {
       // 5. Encaminha o utilizador diretamente para o Dashboard seguro
       router.push("/dashboard");
       router.refresh();
-      
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Erro de conexão com o servidor.");
       }
-      setIsLoading(false)
+      setIsLoading(false);
     }
   };
 
@@ -72,7 +71,7 @@ export default function WelcomePage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0c0e16] p-4 font-sans text-[#e1e2ed]">
-      <div 
+      <div
         className="w-full max-w-md bg-[#161B22] border border-[#30363D] rounded-xl p-8 shadow-2xl transition-all duration-500 ease-out"
         id="main-card"
       >
@@ -85,7 +84,8 @@ export default function WelcomePage() {
             Bem-vindo(a), {firstName}!
           </h1>
           <p className="text-sm text-[#9da6b9]">
-            Para garantir a sua privacidade e segurança, por favor defina uma nova senha para este primeiro acesso.
+            Para garantir a sua privacidade e segurança, por favor defina uma
+            nova senha para este primeiro acesso.
           </p>
         </div>
 
@@ -93,7 +93,9 @@ export default function WelcomePage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Nova Senha */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#c1c7d0]">Nova Senha</label>
+            <label className="text-sm font-semibold text-[#c1c7d0]">
+              Nova Senha
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock className="h-5 w-5 text-[#9da6b9]" />
@@ -113,14 +115,20 @@ export default function WelcomePage() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#9da6b9] hover:text-[#e1e2ed] transition-colors"
                 disabled={isLoading}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
 
           {/* Confirmar Senha */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-[#c1c7d0]">Confirmar Senha</label>
+            <label className="text-sm font-semibold text-[#c1c7d0]">
+              Confirmar Senha
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock className="h-5 w-5 text-[#9da6b9]" />

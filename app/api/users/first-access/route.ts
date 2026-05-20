@@ -9,14 +9,14 @@ export async function POST(req: Request) {
   if (!session || !session.user) {
     return NextResponse.json(
       { error: "Não autorizado. Inicie sessão novamente." },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
   if (!session.user.first_access) {
     return NextResponse.json(
       { error: "Operação não permitida para este perfil." },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -26,12 +26,12 @@ export async function POST(req: Request) {
     if (!password || password.trim().length < 6) {
       return NextResponse.json(
         { error: "A senha deve conter pelo menos 6 caracteres." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const userId = Number(session.user.id);
-    
+
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
@@ -39,8 +39,11 @@ export async function POST(req: Request) {
 
     if (!success) {
       return NextResponse.json(
-        { error: "Houve um erro técnico ao atualizar a senha no banco de dados." },
-        { status: 500 }
+        {
+          error:
+            "Houve um erro técnico ao atualizar a senha no banco de dados.",
+        },
+        { status: 500 },
       );
     }
 
@@ -52,7 +55,7 @@ export async function POST(req: Request) {
     console.error("[api/users/first-access] Erro interno:", error);
     return NextResponse.json(
       { error: "Erro interno no servidor ao processar a requisição." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

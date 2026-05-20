@@ -49,7 +49,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        token.first_access = user.first_access; 
+        token.first_access = user.first_access;
       }
 
       if (trigger === "update" && session?.first_access !== undefined) {
@@ -57,7 +57,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       return token;
-
     },
     async session({ session, token }) {
       session.user.id = token.id as string;

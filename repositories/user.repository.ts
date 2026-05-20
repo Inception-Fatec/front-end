@@ -48,14 +48,17 @@ export async function completeFirstAccess(
 ): Promise<boolean> {
   const { error } = await supabaseAdmin
     .from("users")
-    .update({ 
+    .update({
       password: hashedPassword,
-      first_access: false 
+      first_access: false,
     })
     .eq("id", userId);
 
   if (error) {
-    console.error("[user.repository] Erro ao completar primeiro acesso:", error);
+    console.error(
+      "[user.repository] Erro ao completar primeiro acesso:",
+      error,
+    );
     return false;
   }
 
