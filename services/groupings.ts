@@ -9,7 +9,9 @@ export async function getGroupings(): Promise<GroupingWithStationDetails[]> {
   return res.json();
 }
 
-export async function getGroupingById(id: number): Promise<GroupingWithStationDetails> {
+export async function getGroupingById(
+  id: number,
+): Promise<GroupingWithStationDetails> {
   const res = await fetch(`/api/groupings?id=${id}`, { cache: "no-store" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -31,7 +33,10 @@ export async function createGrouping(name: string): Promise<Grouping> {
   return res.json();
 }
 
-export async function updateGrouping(id: number, name: string): Promise<Grouping> {
+export async function updateGrouping(
+  id: number,
+  name: string,
+): Promise<Grouping> {
   const res = await fetch("/api/groupings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -44,7 +49,10 @@ export async function updateGrouping(id: number, name: string): Promise<Grouping
   return res.json();
 }
 
-export async function updateGroupingStations(id: number, stations: number[]): Promise<void> {
+export async function updateGroupingStations(
+  id: number,
+  stations: number[],
+): Promise<void> {
   const res = await fetch("/api/groupings", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

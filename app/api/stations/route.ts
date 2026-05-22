@@ -289,7 +289,9 @@ export async function GET(req: NextRequest) {
 
       if (groupError) throw groupError;
 
-      const ids = (stationIds ?? []).map((r: { id_station: number }) => r.id_station);
+      const ids = (stationIds ?? []).map(
+        (r: { id_station: number }) => r.id_station,
+      );
       if (ids.length === 0) {
         return NextResponse.json(
           { data: [], pagination: { page, limit, total: 0, totalPages: 1 } },

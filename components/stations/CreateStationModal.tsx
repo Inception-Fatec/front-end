@@ -28,10 +28,11 @@ export function CreateStationModal({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingParams, setLoadingParams] = useState(true);
-  const [groupings, setGroupings] = useState<{ id: number; name: string }[]>([]);
+  const [groupings, setGroupings] = useState<{ id: number; name: string }[]>(
+    [],
+  );
   const [selectedGroupings, setSelectedGroupings] = useState<number[]>([]);
   const [loadingGroupings, setLoadingGroupings] = useState(true);
-
 
   useEffect(() => {
     async function fetchParameterTypes() {
@@ -73,7 +74,7 @@ export function CreateStationModal({
 
   function toggleGrouping(id: number) {
     setSelectedGroupings((prev) =>
-      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
     );
   }
 
@@ -98,7 +99,8 @@ export function CreateStationModal({
         address: address.trim() || null,
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
-        parameters: selectedParameters.length > 0 ? selectedParameters : undefined,
+        parameters:
+          selectedParameters.length > 0 ? selectedParameters : undefined,
         groupings: selectedGroupings.length > 0 ? selectedGroupings : undefined,
         status: stationStatus,
       });
@@ -270,11 +272,16 @@ export function CreateStationModal({
             {loadingGroupings ? (
               <div className="grid grid-cols-2 gap-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-8 rounded-lg bg-border animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-8 rounded-lg bg-border animate-pulse"
+                  />
                 ))}
               </div>
             ) : groupings.length === 0 ? (
-              <p className="text-xs text-secondary-text">Nenhum grupo cadastrado.</p>
+              <p className="text-xs text-secondary-text">
+                Nenhum grupo cadastrado.
+              </p>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {groupings.map((g) => {
@@ -293,11 +300,18 @@ export function CreateStationModal({
                       <span
                         className={[
                           "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors",
-                          checked ? "bg-primary border-primary" : "border-border",
+                          checked
+                            ? "bg-primary border-primary"
+                            : "border-border",
                         ].join(" ")}
                       >
                         {checked && (
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                          <svg
+                            width="8"
+                            height="8"
+                            viewBox="0 0 8 8"
+                            fill="none"
+                          >
                             <path
                               d="M1 4l2 2 4-4"
                               stroke="white"
@@ -315,7 +329,7 @@ export function CreateStationModal({
               </div>
             )}
           </div>
-          
+
           {/* Toggle status */}
           <div className="flex items-center justify-between py-1">
             <div>

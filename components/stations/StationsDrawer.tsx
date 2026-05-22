@@ -18,10 +18,11 @@ interface StationDrawerProps {
 function StatusBadge({ status }: { status: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status
-        ? "bg-green-500/10 text-green-400 border-green-500/20"
-        : "bg-border text-secondary-text border-border"
-        }`}
+      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+        status
+          ? "bg-green-500/10 text-green-400 border-green-500/20"
+          : "bg-border text-secondary-text border-border"
+      }`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${status ? "bg-green-400" : "bg-secondary-text"}`}
@@ -215,29 +216,28 @@ export function StationDrawer({
                       {station.longitude.toFixed(4)}°
                     </p>
                   </div>
-
-
                 )}
               </div>
 
               {/* Grupos */}
-              {station.station_groupings && station.station_groupings.length > 0 && (
-                <div className="col-span-2 space-y-0.5">
-                  <p className="text-[10px] uppercase tracking-wider text-secondary-text font-medium">
-                    Grupos
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {station.station_groupings.map((sg) => (
-                      <span
-                        key={sg.id_grouping}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium"
-                      >
-                        {sg.groupings?.name ?? "—"}
-                      </span>
-                    ))}
+              {station.station_groupings &&
+                station.station_groupings.length > 0 && (
+                  <div className="col-span-2 space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-secondary-text font-medium">
+                      Grupos
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {station.station_groupings.map((sg) => (
+                        <span
+                          key={sg.id_grouping}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium"
+                        >
+                          {sg.groupings?.name ?? "—"}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Sensores */}
               {station.parameters.length > 0 && (

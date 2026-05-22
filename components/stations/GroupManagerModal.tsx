@@ -20,16 +20,22 @@ interface GroupManagerModalProps {
 
 type View = "list" | "create" | "edit" | "delete" | "stations";
 
-export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps) {
+export function GroupManagerModal({
+  onClose,
+  onChanged,
+}: GroupManagerModalProps) {
   const [groups, setGroups] = useState<GroupingWithStationDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("list");
-  const [selected, setSelected] = useState<GroupingWithStationDetails | null>(null);
-  const [allStations, setAllStations] = useState<{ id: number; name: string }[]>([]);
+  const [selected, setSelected] = useState<GroupingWithStationDetails | null>(
+    null,
+  );
+  const [allStations, setAllStations] = useState<
+    { id: number; name: string }[]
+  >([]);
   const [selectedStations, setSelectedStations] = useState<number[]>([]);
   const [loadingStations, setLoadingStations] = useState(false);
   const [stationSearch, setStationSearch] = useState("");
-
 
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -47,7 +53,9 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
     }
   }
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    fetchGroups();
+  }, []);
 
   async function handleCreate() {
     if (!name.trim()) return setError("Nome é obrigatório.");
@@ -113,13 +121,14 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
 
       setAllStations(stationsResult.data ?? []);
 
-      const currentIds: number[] = (groupResult.station_groupings ?? [])
-        .flatMap((sg) => {
-          const s = sg.stations;
-          if (!s) return [];
-          if (Array.isArray(s)) return (s as { id: number }[]).map((x) => x.id);
-          return [(s as { id: number }).id];
-        });
+      const currentIds: number[] = (
+        groupResult.station_groupings ?? []
+      ).flatMap((sg) => {
+        const s = sg.stations;
+        if (!s) return [];
+        if (Array.isArray(s)) return (s as { id: number }[]).map((x) => x.id);
+        return [(s as { id: number }).id];
+      });
 
       setSelectedStations(currentIds);
     } catch {
@@ -166,25 +175,33 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
 
   function toggleStation(id: number) {
     setSelectedStations((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
     );
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-sm bg-card-background border border-border rounded-xl shadow-2xl flex flex-col max-h-[80vh]">
-
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             {view !== "list" && (
               <button
-                onClick={() => { setView("list"); setError(null); }}
+                onClick={() => {
+                  setView("list");
+                  setError(null);
+                }}
                 className="p-1 rounded-lg text-secondary-text hover:text-foreground hover:bg-background transition-colors"
               >
                 {/* seta esquerda */}
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M9 11L5 7l4-4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </button>
             )}
@@ -206,13 +223,15 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
-
           {/* LIST */}
           {view === "list" && (
             <div className="space-y-2">
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-10 rounded-lg bg-border animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-10 rounded-lg bg-border animate-pulse"
+                  />
                 ))
               ) : groups.length === 0 ? (
                 <p className="text-xs text-secondary-text text-center py-6">
@@ -224,7 +243,9 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                     key={g.id}
                     className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-background border border-border"
                   >
-                    <span className="text-sm text-foreground font-medium">{g.name}</span>
+                    <span className="text-sm text-foreground font-medium">
+                      {g.name}
+                    </span>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openStations(g)}
@@ -232,8 +253,18 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                         title="Gerenciar estações"
                       >
                         {/* ícone de lista */}
-                        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                          <path d="M2 3.5h9M2 6.5h9M2 9.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 13 13"
+                          fill="none"
+                        >
+                          <path
+                            d="M2 3.5h9M2 6.5h9M2 9.5h5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
                         </svg>
                       </button>
                       <button
@@ -275,8 +306,19 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                     viewBox="0 0 13 13"
                     fill="none"
                   >
-                    <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4" />
-                    <path d="M9 9l2.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    <circle
+                      cx="5.5"
+                      cy="5.5"
+                      r="4"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                    />
+                    <path
+                      d="M9 9l2.5 2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
                   </svg>
                   <input
                     type="text"
@@ -292,58 +334,72 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
               <div className="space-y-2">
                 {loadingStations ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-9 rounded-lg bg-border animate-pulse" />
+                    <div
+                      key={i}
+                      className="h-9 rounded-lg bg-border animate-pulse"
+                    />
                   ))
                 ) : allStations.length === 0 ? (
                   <p className="text-xs text-secondary-text text-center py-6">
                     Nenhuma estação cadastrada.
                   </p>
-                ) : (() => {
-                  const filtered = allStations.filter((s) =>
-                    s.name.toLowerCase().includes(stationSearch.toLowerCase())
-                  );
-                  return filtered.length === 0 ? (
-                    <p className="text-xs text-secondary-text text-center py-4">
-                      Nenhuma estação encontrada.
-                    </p>
-                  ) : (
-                    filtered.map((s) => {
-                      const checked = selectedStations.includes(s.id);
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => toggleStation(s.id)}
-                          className={[
-                            "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors text-left",
-                            checked
-                              ? "border-primary bg-primary/10 text-foreground"
-                              : "border-border bg-background text-secondary-text hover:text-foreground",
-                          ].join(" ")}
-                        >
-                          <span
+                ) : (
+                  (() => {
+                    const filtered = allStations.filter((s) =>
+                      s.name
+                        .toLowerCase()
+                        .includes(stationSearch.toLowerCase()),
+                    );
+                    return filtered.length === 0 ? (
+                      <p className="text-xs text-secondary-text text-center py-4">
+                        Nenhuma estação encontrada.
+                      </p>
+                    ) : (
+                      filtered.map((s) => {
+                        const checked = selectedStations.includes(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => toggleStation(s.id)}
                             className={[
-                              "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors",
-                              checked ? "bg-primary border-primary" : "border-border",
+                              "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors text-left",
+                              checked
+                                ? "border-primary bg-primary/10 text-foreground"
+                                : "border-border bg-background text-secondary-text hover:text-foreground",
                             ].join(" ")}
                           >
-                            {checked && (
-                              <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                <path
-                                  d="M1 4l2 2 4-4"
-                                  stroke="white"
-                                  strokeWidth="1.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            )}
-                          </span>
-                          {s.name}
-                        </button>
-                      );
-                    })
-                  );
-                })()}
+                            <span
+                              className={[
+                                "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors",
+                                checked
+                                  ? "bg-primary border-primary"
+                                  : "border-border",
+                              ].join(" ")}
+                            >
+                              {checked && (
+                                <svg
+                                  width="8"
+                                  height="8"
+                                  viewBox="0 0 8 8"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M1 4l2 2 4-4"
+                                    stroke="white"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+                            </span>
+                            {s.name}
+                          </button>
+                        );
+                      })
+                    );
+                  })()
+                )}
               </div>
             </div>
           )}
@@ -357,7 +413,9 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                 </p>
               )}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-secondary-text">Nome do Grupo</label>
+                <label className="text-xs font-medium text-secondary-text">
+                  Nome do Grupo
+                </label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -380,7 +438,8 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                     Excluir &quot;{selected.name}&quot;?
                   </p>
                   <p className="text-xs text-secondary-text mt-1">
-                    As estações vinculadas não serão excluídas, apenas desassociadas deste grupo.
+                    As estações vinculadas não serão excluídas, apenas
+                    desassociadas deste grupo.
                   </p>
                 </div>
               </div>
@@ -411,7 +470,10 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
           ) : (
             <>
               <button
-                onClick={() => { setView("list"); setError(null); }}
+                onClick={() => {
+                  setView("list");
+                  setError(null);
+                }}
                 className="px-4 py-2 text-sm text-secondary-text hover:text-foreground transition-colors"
               >
                 Cancelar
@@ -422,7 +484,13 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? "Salvando..." : <><Check size={14} /> Criar</>}
+                  {saving ? (
+                    "Salvando..."
+                  ) : (
+                    <>
+                      <Check size={14} /> Criar
+                    </>
+                  )}
                 </button>
               )}
               {view === "stations" && (
@@ -431,7 +499,13 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? "Salvando..." : <><Check size={14} /> Salvar</>}
+                  {saving ? (
+                    "Salvando..."
+                  ) : (
+                    <>
+                      <Check size={14} /> Salvar
+                    </>
+                  )}
                 </button>
               )}
               {view === "edit" && (
@@ -440,7 +514,13 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? "Salvando..." : <><Check size={14} /> Salvar</>}
+                  {saving ? (
+                    "Salvando..."
+                  ) : (
+                    <>
+                      <Check size={14} /> Salvar
+                    </>
+                  )}
                 </button>
               )}
               {view === "delete" && (
@@ -449,7 +529,13 @@ export function GroupManagerModal({ onClose, onChanged }: GroupManagerModalProps
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-alert text-white hover:bg-alert/90 disabled:opacity-50 transition-colors"
                 >
-                  {saving ? "Excluindo..." : <><Trash2 size={14} /> Excluir</>}
+                  {saving ? (
+                    "Excluindo..."
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> Excluir
+                    </>
+                  )}
                 </button>
               )}
             </>

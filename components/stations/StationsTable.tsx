@@ -103,8 +103,6 @@ export function StationsTable({
     }
   }, [searchParams]);
 
-
-
   async function fetchGroups() {
     try {
       const json = await getGroupings();
@@ -115,13 +113,25 @@ export function StationsTable({
     }
   }
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    fetchGroups();
+  }, []);
 
   const fetchPage = useCallback(
-    async (page: number, s = search, st = statusFilter, gr = groupingFilter) => {
+    async (
+      page: number,
+      s = search,
+      st = statusFilter,
+      gr = groupingFilter,
+    ) => {
       setLoading(true);
       try {
-        const result = await getStations({ page, search: s, status: st, grouping: gr });
+        const result = await getStations({
+          page,
+          search: s,
+          status: st,
+          grouping: gr,
+        });
         setData(result);
       } finally {
         setLoading(false);
@@ -161,7 +171,8 @@ export function StationsTable({
               Gerenciar Estações
             </h1>
             <p className="text-sm text-secondary-text mt-0.5">
-              Visualize, cadastre e gerencie as estações meteorológicas conectadas.
+              Visualize, cadastre e gerencie as estações meteorológicas
+              conectadas.
             </p>
           </div>
           {canCreate && (
