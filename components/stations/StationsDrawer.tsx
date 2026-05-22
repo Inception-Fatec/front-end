@@ -219,6 +219,26 @@ export function StationDrawer({
                 )}
               </div>
 
+              {/* Grupos */}
+              {station.station_groupings &&
+                station.station_groupings.length > 0 && (
+                  <div className="col-span-2 space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-secondary-text font-medium">
+                      Grupos
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {station.station_groupings.map((sg) => (
+                        <span
+                          key={sg.id_grouping}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium"
+                        >
+                          {sg.groupings?.name ?? "—"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               {/* Sensores */}
               {station.parameters.length > 0 && (
                 <div className="space-y-2">

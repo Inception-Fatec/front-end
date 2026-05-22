@@ -208,7 +208,6 @@ export async function GET(req: NextRequest) {
 
   try {
     if (id) {
-      // Busca estação com parâmetros mas SEM measurements no join
       const { data: station, error } = await supabaseAdmin
         .from("stations")
         .select(
@@ -232,8 +231,6 @@ export async function GET(req: NextRequest) {
           { error: "Estação não encontrada." },
           { status: 404 },
         );
-
-      // Busca todas as measurements de cada parâmetro em paralelo paginando internamente
       const parametersWithMeasurements = await Promise.all(
         station.parameters.map(async (param: { id: number }) => {
           const measurements = await fetchAllMeasurements(
@@ -273,6 +270,35 @@ export async function GET(req: NextRequest) {
 
     if (search) {
       queryList = queryList.ilike("name", `%${search}%`);
+    }
+
+    const statusParam = searchParams.get("status");
+    if (statusParam === "active") {
+      queryList = queryList.eq("status", true);
+    } else if (statusParam === "inactive") {
+      queryList = queryList.eq("status", false);
+    }
+
+    const groupId = searchParams.get("grouping");
+
+    if (groupId && groupId !== "all") {
+      const { data: stationIds, error: groupError } = await supabaseAdmin
+        .from("station_groupings")
+        .select("id_station")
+        .eq("id_grouping", Number(groupId));
+
+      if (groupError) throw groupError;
+
+      const ids = (stationIds ?? []).map(
+        (r: { id_station: number }) => r.id_station,
+      );
+      if (ids.length === 0) {
+        return NextResponse.json(
+          { data: [], pagination: { page, limit, total: 0, totalPages: 1 } },
+          { status: 200 },
+        );
+      }
+      queryList = queryList.in("id", ids);
     }
 
     if (!isAll && limit !== null) {

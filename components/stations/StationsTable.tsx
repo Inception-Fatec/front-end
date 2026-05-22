@@ -13,6 +13,10 @@ import type { PaginatedStations, StationWithParameters } from "@/types/station";
 import type { UserRole } from "@/types/user";
 import { useSearchParams } from "next/navigation";
 import { Pagination } from "@/components/Pagination";
+import { GroupManagerModal } from "./GroupManagerModal";
+import { Settings2 } from "lucide-react";
+import type { GroupingWithStationDetails } from "@/types/grouping";
+import { getGroupings } from "@/services/groupings";
 
 interface StationsTableProps {
   initialData: PaginatedStations;
@@ -83,6 +87,9 @@ export function StationsTable({
   const [selectedStationId, setSelectedStationId] = useState<number | null>(
     null,
   );
+  const [groupingFilter, setGroupingFilter] = useState("all");
+  const [groups, setGroups] = useState<GroupingWithStationDetails[]>([]);
+  const [groupManagerOpen, setGroupManagerOpen] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -96,17 +103,41 @@ export function StationsTable({
     }
   }, [searchParams]);
 
+  async function fetchGroups() {
+    try {
+      const json = await getGroupings();
+      console.log(json);
+      setGroups(json ?? []);
+    } catch {
+      setGroups([]);
+    }
+  }
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
   const fetchPage = useCallback(
-    async (page: number, s = search, st = statusFilter) => {
+    async (
+      page: number,
+      s = search,
+      st = statusFilter,
+      gr = groupingFilter,
+    ) => {
       setLoading(true);
       try {
-        const result = await getStations({ page, search: s, status: st });
+        const result = await getStations({
+          page,
+          search: s,
+          status: st,
+          grouping: gr,
+        });
         setData(result);
       } finally {
         setLoading(false);
       }
     },
-    [search, statusFilter],
+    [search, statusFilter, groupingFilter],
   );
 
   function handleSearch(value: string) {
@@ -117,6 +148,11 @@ export function StationsTable({
   function handleStatusFilter(value: string) {
     setStatusFilter(value);
     fetchPage(1, search, value);
+  }
+
+  function handleGroupingFilter(value: string) {
+    setGroupingFilter(value);
+    fetchPage(1, search, statusFilter, value);
   }
 
   const canCreate = sessionRole === "ADMIN";
@@ -140,23 +176,33 @@ export function StationsTable({
             </p>
           </div>
           {canCreate && (
-            <button
-              onClick={() => setCreateOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors shrink-0"
-            >
-              <Plus size={16} />
-              Nova Estação
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setGroupManagerOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-secondary-text text-sm font-medium hover:text-foreground hover:bg-card-background transition-colors"
+              >
+                <Settings2 size={16} />
+                Grupos
+              </button>
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Plus size={16} />
+                Nova Estação
+              </button>
+            </div>
           )}
         </div>
-
         <StationFilters
           search={search}
           statusFilter={statusFilter}
+          groupingFilter={groupingFilter}
+          groups={groups}
           onSearch={handleSearch}
           onStatusFilter={handleStatusFilter}
+          onGroupingFilter={handleGroupingFilter}
         />
-
         {/* Tabela */}
         <div className="bg-card-background border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -319,6 +365,15 @@ export function StationsTable({
             const s = data.data.find((s) => s.id === selectedStationId) ?? null;
             setDeleteStation(s);
             setSelectedStationId(null);
+          }}
+        />
+      )}
+      {groupManagerOpen && (
+        <GroupManagerModal
+          onClose={() => setGroupManagerOpen(false)}
+          onChanged={() => {
+            fetchGroups();
+            fetchPage(1);
           }}
         />
       )}
