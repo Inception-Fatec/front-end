@@ -1,13 +1,13 @@
 "use client";
 
 // app/dashboard/page.tsx
-
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Radio, Zap, AlertTriangle, Clock, Layers } from "lucide-react";
+import { Radio, Zap, AlertTriangle, Clock, Layers, Play } from "lucide-react";
 
 import { useDashboard } from "@/context/DashboardContext";
+import { useTour } from "@/context/TourContext"; // Hook do nosso sistema de ajuda
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { StationsTable } from "@/components/dashboard/StationsTable";
@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
   const { stats, stations, alerts, groups, isLoading, error } = useDashboard();
+  const { startTour } = useTour(); // Extraindo a função de iniciar o motor do tour
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -53,6 +54,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Botão temporário de teste para disparar o Onboarding */}
+      <div className="flex justify-end bg-surface-container-low/40 p-3 rounded-xl border border-outline-variant/30 backdrop-blur-sm">
+        <button
+          onClick={startTour}
+          className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 text-primary rounded-lg text-xs font-semibold hover:bg-primary/20 transition-all shadow-[0_0_15px_rgba(173,198,255,0.1)]"
+        >
+          <Play size={12} className="fill-primary" />
+          Testar Tour Guiado
+        </button>
+      </div>
+
       {error && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-alert/10 border border-alert/20 text-alert text-xs">
           <AlertTriangle size={14} />
@@ -98,6 +110,7 @@ export default function DashboardPage() {
         <div className="xl:col-span-2">
           <StationsTable stations={stations} isLoading={isLoading} />
         </div>
+
         <RecentAlertsList alerts={alerts} isLoading={isLoading} />
       </div>
 
