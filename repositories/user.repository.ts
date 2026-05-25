@@ -1,4 +1,4 @@
-import sql from "@/lib/db";
+import sql from "@/lib/db-postgres";
 import type { User } from "@/types/user";
 
 export async function findUserByEmail(email: string): Promise<User | null> {
