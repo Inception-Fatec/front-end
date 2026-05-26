@@ -1,13 +1,13 @@
 "use client";
 
 // app/dashboard/page.tsx
-
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Radio, Zap, AlertTriangle, Clock, Layers } from "lucide-react";
 
 import { useDashboard } from "@/context/DashboardContext";
+import { useTour } from "@/context/TourContext";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { StationsTable } from "@/components/dashboard/StationsTable";
@@ -98,6 +98,7 @@ export default function DashboardPage() {
         <div className="xl:col-span-2">
           <StationsTable stations={stations} isLoading={isLoading} />
         </div>
+
         <RecentAlertsList alerts={alerts} isLoading={isLoading} />
       </div>
 

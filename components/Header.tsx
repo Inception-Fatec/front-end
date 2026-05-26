@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Bell, Menu } from "lucide-react";
+import { Bell, Menu, CircleHelp } from "lucide-react";
 import { useDashboard } from "@/context/DashboardContext";
 import { NotificationsDropdown } from "@/components/header/NotificationsDropdown";
 import { UserDropdown } from "@/components/header/UserDropdown";
 import { updateStatus } from "@/services/alert-logs";
 import { useSession } from "next-auth/react";
+import { useTour } from "@/context/TourContext";
 
 interface HeaderProps {
   onMenuOpen: () => void;
@@ -32,7 +33,23 @@ export function Header({ onMenuOpen }: HeaderProps) {
   const { notifications, isLoading } = useDashboard();
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
 
+  const { startTour } = useTour();
+
   const userId = session?.user?.id ? Number(session.user.id) : null;
+
+  useEffect(() => {
+    if (userId) {
+      const tourKey = `tour_completed_user_${userId}`;
+      const hasSeenTour = localStorage.getItem(tourKey);
+
+      if (!hasSeenTour) {
+        localStorage.setItem(tourKey, "true");
+        setTimeout(() => {
+          startTour();
+        }, 1000);
+      }
+    }
+  }, [userId, startTour]);
 
   const localAlerts = userId
     ? (notifications.data ?? []).filter((a) => !dismissedIds.has(a.id))
@@ -99,8 +116,20 @@ export function Header({ onMenuOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            setNotifOpen(false);
+            startTour();
+          }}
+          className="p-2 rounded-lg text-secondary-text hover:text-primary hover:bg-primary/10 transition-colors"
+          title="Ver tutorial do sistema"
+        >
+          <CircleHelp size={20} />
+        </button>
+
         <div className="relative">
           <button
+            id="notification-bell-btn"
             onClick={handleBellClick}
             className="relative p-2 rounded-lg text-secondary-text hover:text-foreground hover:bg-card-background transition-colors"
             aria-label={`${unreadCount} notificações não lidas`}

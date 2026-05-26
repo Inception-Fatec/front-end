@@ -87,7 +87,10 @@ export function NotificationsDropdown({
         aria-hidden="true"
       />
 
-      <div className="absolute right-0 mt-2 w-80 bg-card-background border border-border rounded-xl shadow-2xl z-20 overflow-hidden">
+      <div
+        data-tour-id="tour-header-notifications"
+        className="absolute right-0 mt-2 w-80 bg-card-background border border-border rounded-xl shadow-2xl z-20 overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <span className="text-sm font-semibold text-foreground">

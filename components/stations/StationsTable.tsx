@@ -106,7 +106,6 @@ export function StationsTable({
   async function fetchGroups() {
     try {
       const json = await getGroupings();
-      console.log(json);
       setGroups(json ?? []);
     } catch {
       setGroups([]);
@@ -194,6 +193,7 @@ export function StationsTable({
             </div>
           )}
         </div>
+
         <StationFilters
           search={search}
           statusFilter={statusFilter}
@@ -203,8 +203,12 @@ export function StationsTable({
           onStatusFilter={handleStatusFilter}
           onGroupingFilter={handleGroupingFilter}
         />
+
         {/* Tabela */}
-        <div className="bg-card-background border border-border rounded-xl overflow-hidden">
+        <div
+          data-tour-id="tour-stations-table"
+          className="bg-card-background border border-border rounded-xl overflow-hidden"
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -249,10 +253,13 @@ export function StationsTable({
                     </td>
                   </tr>
                 ) : (
-                  data.data.map((station) => (
+                  data.data.map((station, index) => (
                     <tr
                       key={station.id}
-                      className="hover:bg-background/50 transition-colors cursor-pointer"
+                      // 👇 Classe injetada de forma segura na tr correspondente à primeira linha
+                      className={`hover:bg-background/50 transition-colors cursor-pointer ${
+                        index === 0 ? "tour-open-drawer-btn" : ""
+                      }`}
                       onClick={() => setSelectedStationId(station.id)}
                     >
                       <td className="px-4 py-3">
