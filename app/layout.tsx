@@ -16,12 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className="bg-[#131315] text-[#e5e1e4] antialiased">
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
+      <body className="bg-[#131315] text-[#e5e1e4] antialiased" suppressHydrationWarning>
         <SessionProvider>
           <TourProvider>
             {children}
-            {/* O componente visual fica ouvindo o estado global da engine aqui */}
             <GlobalTour />
           </TourProvider>
         </SessionProvider>
