@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react"; // 👈 Adicionado useEffect
+import { useCallback, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Bell, Menu, CircleHelp } from "lucide-react"; // 👈 Adicionado CircleHelp
+import { Bell, Menu, CircleHelp } from "lucide-react";
 import { useDashboard } from "@/context/DashboardContext";
 import { NotificationsDropdown } from "@/components/header/NotificationsDropdown";
 import { UserDropdown } from "@/components/header/UserDropdown";
 import { updateStatus } from "@/services/alert-logs";
 import { useSession } from "next-auth/react";
-import { useTour } from "@/context/TourContext"; // 👈 Adicionado hook do Tour
+import { useTour } from "@/context/TourContext";
 
 interface HeaderProps {
   onMenuOpen: () => void;
@@ -32,30 +32,24 @@ export function Header({ onMenuOpen }: HeaderProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const { notifications, isLoading } = useDashboard();
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(new Set());
-  
-  const { startTour } = useTour(); // 👈 Trazemos a função de iniciar o Tour
+
+  const { startTour } = useTour();
 
   const userId = session?.user?.id ? Number(session.user.id) : null;
 
-  // =================================================================
-  // 🚀 MÁGICA 1: DISPARO AUTOMÁTICO NO PRIMEIRO ACESSO
-  // =================================================================
   useEffect(() => {
     if (userId) {
       const tourKey = `tour_completed_user_${userId}`;
       const hasSeenTour = localStorage.getItem(tourKey);
 
       if (!hasSeenTour) {
-        // Se nunca viu, marca como visto e inicia o tour!
-        localStorage.setItem(tourKey, 'true');
-        // Pequeno delay para garantir que a página renderizou completamente
+        localStorage.setItem(tourKey, "true");
         setTimeout(() => {
           startTour();
-        }, 1000); 
+        }, 1000);
       }
     }
   }, [userId, startTour]);
-  // =================================================================
 
   const localAlerts = userId
     ? (notifications.data ?? []).filter((a) => !dismissedIds.has(a.id))
@@ -122,13 +116,10 @@ export function Header({ onMenuOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* ================================================================= */}
-        {/* 🚀 MÁGICA 2: BOTÃO MANUAL DE AJUDA */}
-        {/* ================================================================= */}
         <button
           onClick={() => {
-            setNotifOpen(false); // Fecha notificações se estiverem abertas
-            startTour();         // Inicia o Tour manualmente
+            setNotifOpen(false);
+            startTour();
           }}
           className="p-2 rounded-lg text-secondary-text hover:text-primary hover:bg-primary/10 transition-colors"
           title="Ver tutorial do sistema"

@@ -43,7 +43,7 @@ export function StationFilters({
           className="w-full pl-9 pr-3 py-2 rounded-lg bg-card-background border border-border text-sm text-foreground placeholder:text-secondary-text focus:outline-none focus:border-primary transition-colors"
         />
       </div>
-      
+
       <select
         value={statusFilter}
         onChange={(e) => onStatusFilter(e.target.value)}

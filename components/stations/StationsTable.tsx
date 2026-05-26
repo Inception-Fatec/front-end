@@ -170,7 +170,8 @@ export function StationsTable({
               Gerenciar Estações
             </h1>
             <p className="text-sm text-secondary-text mt-0.5">
-              Visualize, cadastre e gerencie as estações meteorológicas conectadas.
+              Visualize, cadastre e gerencie as estações meteorológicas
+              conectadas.
             </p>
           </div>
           {canCreate && (
@@ -204,17 +205,30 @@ export function StationsTable({
         />
 
         {/* Tabela */}
-        <div data-tour-id="tour-stations-table" className="bg-card-background border border-border rounded-xl overflow-hidden">
+        <div
+          data-tour-id="tour-stations-table"
+          className="bg-card-background border border-border rounded-xl overflow-hidden"
+        >
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-secondary-text">
-                  <th className="text-left px-4 py-3 font-medium">Nome da Estação</th>
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">ID do Datalogger</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Localização</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Sensores</th>
+                  <th className="text-left px-4 py-3 font-medium">
+                    Nome da Estação
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">
+                    ID do Datalogger
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
+                    Localização
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
+                    Sensores
+                  </th>
                   <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Última Transmissão</th>
+                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">
+                    Última Transmissão
+                  </th>
                   <th className="text-right px-4 py-3 font-medium">Ações</th>
                 </tr>
               </thead>

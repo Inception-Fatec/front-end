@@ -1,4 +1,10 @@
-export type TourPlacement = 'top' | 'bottom' | 'left' | 'right' | 'outside' | 'overlay';
+export type TourPlacement =
+  | "top"
+  | "bottom"
+  | "left"
+  | "right"
+  | "outside"
+  | "overlay";
 
 export interface TourStep {
   id: string;

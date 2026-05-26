@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { TourStep } from "@/types/tour";
 import { globalTourRegistry } from "@/lib/tour/registry";
@@ -24,9 +30,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   const isActive = stepIndex !== null;
-  const currentStep = isActive && stepIndex < globalTourRegistry.length 
-    ? globalTourRegistry[stepIndex] 
-    : null;
+  const currentStep =
+    isActive && stepIndex < globalTourRegistry.length
+      ? globalTourRegistry[stepIndex]
+      : null;
 
   const startTour = useCallback(async () => {
     const firstStep = globalTourRegistry[0];
@@ -39,9 +46,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (firstStep.route && firstStep.route !== pathname) {
       setIsNavigating(true);
       router.push(firstStep.route);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
-    
+
     setStepIndex(0);
     setIsNavigating(false);
   }, [pathname, router]);
@@ -53,32 +60,41 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const nextStep = useCallback(async () => {
     if (stepIndex === null) return;
-    
+
     const nextIndex = stepIndex + 1;
-    
+
     if (nextIndex >= globalTourRegistry.length) {
       closeTour();
       return;
     }
 
     const nextStepConfig = globalTourRegistry[nextIndex];
-    
+
     if (nextStepConfig.onBeforeEnter) {
       await nextStepConfig.onBeforeEnter();
     }
 
     if (nextStepConfig.route && nextStepConfig.route !== pathname) {
-      setIsNavigating(true); 
+      setIsNavigating(true);
       router.push(nextStepConfig.route);
-      await new Promise(resolve => setTimeout(resolve, 300)); 
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     setStepIndex(nextIndex);
-    setIsNavigating(false); 
+    setIsNavigating(false);
   }, [stepIndex, closeTour, pathname, router]);
 
   return (
-    <TourContext.Provider value={{ isActive, currentStep, isNavigating, startTour, nextStep, closeTour }}>
+    <TourContext.Provider
+      value={{
+        isActive,
+        currentStep,
+        isNavigating,
+        startTour,
+        nextStep,
+        closeTour,
+      }}
+    >
       {children}
     </TourContext.Provider>
   );

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { TourProvider } from "@/context/TourContext";
 import { GlobalTour } from "@/components/tour/GlobalTour";
-import "@/app/globals.css";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "App",
@@ -17,7 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
-      <body className="bg-[#131315] text-[#e5e1e4] antialiased" suppressHydrationWarning>
+      <body
+        className="bg-[#131315] text-[#e5e1e4] antialiased"
+        suppressHydrationWarning
+      >
         <SessionProvider>
           <TourProvider>
             {children}
