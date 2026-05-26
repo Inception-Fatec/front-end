@@ -3,6 +3,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useTour } from "@/context/TourContext";
 
+const CARD_WIDTH = 280;
+const GAP_Y = 16;
+const OFFSET_X = -40;
+const SCROLL_MARGIN = 260;
+
 export function GlobalTour() {
   const { isActive, currentStep, nextStep, closeTour, isNavigating } =
     useTour();
@@ -14,16 +19,13 @@ export function GlobalTour() {
     opacity: 0,
   });
 
-  const CARD_WIDTH = 280;
-  const GAP_Y = 16;
-  const OFFSET_X = -40;
-  const SCROLL_MARGIN = 260;
-
   useEffect(() => {
     if (!isActive || !currentStep || isNavigating) {
-      setSpotlightStyle({});
-      setCardStyle({ opacity: 0 });
-      return;
+      const resetTimer = setTimeout(() => {
+        setSpotlightStyle({});
+        setCardStyle({ opacity: 0 });
+      }, 0);
+      return () => clearTimeout(resetTimer);
     }
 
     isMovingRef.current = true;

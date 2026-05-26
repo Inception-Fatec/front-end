@@ -4,10 +4,10 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Radio, Zap, AlertTriangle, Clock, Layers, Play } from "lucide-react";
+import { Radio, Zap, AlertTriangle, Clock, Layers } from "lucide-react";
 
 import { useDashboard } from "@/context/DashboardContext";
-import { useTour } from "@/context/TourContext"; // Hook do nosso sistema de ajuda
+import { useTour } from "@/context/TourContext";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { StationsTable } from "@/components/dashboard/StationsTable";
@@ -44,7 +44,6 @@ export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
   const { stats, stations, alerts, groups, isLoading, error } = useDashboard();
-  const { startTour } = useTour(); // Extraindo a função de iniciar o motor do tour
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -54,8 +53,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Botão temporário de teste para disparar o Onboarding */}
-
       {error && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-alert/10 border border-alert/20 text-alert text-xs">
           <AlertTriangle size={14} />
