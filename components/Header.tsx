@@ -100,7 +100,7 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         <div className="relative">
-          <button
+          <button id="notification-bell-btn"
             onClick={handleBellClick}
             className="relative p-2 rounded-lg text-secondary-text hover:text-foreground hover:bg-card-background transition-colors"
             aria-label={`${unreadCount} notificações não lidas`}

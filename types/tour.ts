@@ -1,4 +1,4 @@
-export type TourPlacement = 'top' | 'bottom' | 'left' | 'right';
+export type TourPlacement = 'top' | 'bottom' | 'left' | 'right' | 'outside' | 'overlay';
 
 export interface TourStep {
   id: string;
@@ -7,9 +7,5 @@ export interface TourStep {
   title: string;
   description: string;
   placement?: TourPlacement;
-  /**
-   * Gatilho opcional executado antes da etapa ser renderizada.
-   * Útil para abrir modais, menus ou drawers antes do spotlight.
-   */
   onBeforeEnter?: () => void | Promise<void>;
 }

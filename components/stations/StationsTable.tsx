@@ -106,7 +106,6 @@ export function StationsTable({
   async function fetchGroups() {
     try {
       const json = await getGroupings();
-      console.log(json);
       setGroups(json ?? []);
     } catch {
       setGroups([]);
@@ -171,8 +170,7 @@ export function StationsTable({
               Gerenciar Estações
             </h1>
             <p className="text-sm text-secondary-text mt-0.5">
-              Visualize, cadastre e gerencie as estações meteorológicas
-              conectadas.
+              Visualize, cadastre e gerencie as estações meteorológicas conectadas.
             </p>
           </div>
           {canCreate && (
@@ -194,6 +192,7 @@ export function StationsTable({
             </div>
           )}
         </div>
+
         <StationFilters
           search={search}
           statusFilter={statusFilter}
@@ -203,28 +202,19 @@ export function StationsTable({
           onStatusFilter={handleStatusFilter}
           onGroupingFilter={handleGroupingFilter}
         />
+
         {/* Tabela */}
-        <div className="bg-card-background border border-border rounded-xl overflow-hidden">
+        <div data-tour-id="tour-stations-table" className="bg-card-background border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-[11px] uppercase tracking-wider text-secondary-text">
-                  <th className="text-left px-4 py-3 font-medium">
-                    Nome da Estação
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">
-                    ID do Datalogger
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
-                    Localização
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">
-                    Sensores
-                  </th>
+                  <th className="text-left px-4 py-3 font-medium">Nome da Estação</th>
+                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">ID do Datalogger</th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Localização</th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Sensores</th>
                   <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">
-                    Última Transmissão
-                  </th>
+                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Última Transmissão</th>
                   <th className="text-right px-4 py-3 font-medium">Ações</th>
                 </tr>
               </thead>
@@ -249,10 +239,13 @@ export function StationsTable({
                     </td>
                   </tr>
                 ) : (
-                  data.data.map((station) => (
+                  data.data.map((station, index) => (
                     <tr
                       key={station.id}
-                      className="hover:bg-background/50 transition-colors cursor-pointer"
+                      // 👇 Classe injetada de forma segura na tr correspondente à primeira linha
+                      className={`hover:bg-background/50 transition-colors cursor-pointer ${
+                        index === 0 ? "tour-open-drawer-btn" : ""
+                      }`}
                       onClick={() => setSelectedStationId(station.id)}
                     >
                       <td className="px-4 py-3">

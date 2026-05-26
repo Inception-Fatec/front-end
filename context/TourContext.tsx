@@ -1,12 +1,14 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { TourStep } from "@/types/tour";
 import { globalTourRegistry } from "@/lib/tour/registry";
 
 interface TourContextProps {
   isActive: boolean;
   currentStep: TourStep | null;
+  isNavigating: boolean;
   startTour: () => void;
   nextStep: () => void;
   closeTour: () => void;
@@ -16,6 +18,10 @@ const TourContext = createContext<TourContextProps | undefined>(undefined);
 
 export function TourProvider({ children }: { children: ReactNode }) {
   const [stepIndex, setStepIndex] = useState<number | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const router = useRouter();
+  const pathname = usePathname();
 
   const isActive = stepIndex !== null;
   const currentStep = isActive && stepIndex < globalTourRegistry.length 
@@ -26,16 +32,23 @@ export function TourProvider({ children }: { children: ReactNode }) {
     const firstStep = globalTourRegistry[0];
     if (!firstStep) return;
 
-    // Se a primeira etapa tiver alguma preparação (como abrir um menu), executa antes
     if (firstStep.onBeforeEnter) {
       await firstStep.onBeforeEnter();
     }
+
+    if (firstStep.route && firstStep.route !== pathname) {
+      setIsNavigating(true);
+      router.push(firstStep.route);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
     
     setStepIndex(0);
-  }, []);
+    setIsNavigating(false);
+  }, [pathname, router]);
 
   const closeTour = useCallback(() => {
     setStepIndex(null);
+    setIsNavigating(false);
   }, []);
 
   const nextStep = useCallback(async () => {
@@ -43,7 +56,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
     
     const nextIndex = stepIndex + 1;
     
-    // Se não houver mais etapas, finaliza o tour
     if (nextIndex >= globalTourRegistry.length) {
       closeTour();
       return;
@@ -51,16 +63,22 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
     const nextStepConfig = globalTourRegistry[nextIndex];
     
-    // Prepara a interface para a próxima etapa, caso necessário
     if (nextStepConfig.onBeforeEnter) {
       await nextStepConfig.onBeforeEnter();
     }
 
+    if (nextStepConfig.route && nextStepConfig.route !== pathname) {
+      setIsNavigating(true); 
+      router.push(nextStepConfig.route);
+      await new Promise(resolve => setTimeout(resolve, 300)); 
+    }
+
     setStepIndex(nextIndex);
-  }, [stepIndex, closeTour]);
+    setIsNavigating(false); 
+  }, [stepIndex, closeTour, pathname, router]);
 
   return (
-    <TourContext.Provider value={{ isActive, currentStep, startTour, nextStep, closeTour }}>
+    <TourContext.Provider value={{ isActive, currentStep, isNavigating, startTour, nextStep, closeTour }}>
       {children}
     </TourContext.Provider>
   );

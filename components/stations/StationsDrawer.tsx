@@ -129,7 +129,7 @@ export function StationDrawer({
       />
 
       {/* Drawer */}
-      <aside className="fixed right-0 top-0 h-screen w-full max-w-sm z-50 bg-background border-l border-border flex flex-col shadow-2xl">
+      <aside data-tour-id="tour-station-drawer" className="fixed right-0 top-0 h-screen w-full max-w-sm z-50 bg-background border-l border-border flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
           {loading || !station ? (
