@@ -73,7 +73,10 @@ export function StationsTable({ stations, isLoading }: StationsTableProps) {
   }
 
   return (
-    <div data-tour-id="tour-dashboard-stations-card" className="bg-card-background border border-border rounded-xl overflow-hidden">
+    <div
+      data-tour-id="tour-dashboard-stations-card"
+      className="bg-card-background border border-border rounded-xl overflow-hidden"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border">
         <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
