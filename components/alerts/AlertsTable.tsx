@@ -8,10 +8,14 @@ import { CreateAlertModal } from "./CreateAlertModal";
 import { EditAlertModal } from "./EditAlertModal";
 import { DeleteAlertModal } from "./DeleteAlertModal";
 import { AlertFilters } from "./AlertFilters";
-import {AlertLogWithDetails, type AlertWithParameters, type PaginatedAlerts } from "@/types/alert";
+import {
+  AlertLogWithDetails,
+  type AlertWithParameters,
+  type PaginatedAlerts,
+} from "@/types/alert";
 import type { ParameterType } from "@/types/parameter";
 import type { UserRole } from "@/types/user";
-import {getAlerts, updateAlertStatus} from "@/services/alerts";
+import { getAlerts, updateAlertStatus } from "@/services/alerts";
 import { getParameters } from "@/services/parameters";
 import { getStations } from "@/services/stations";
 import { StationWithParameters } from "@/types/station";
@@ -25,14 +29,11 @@ interface AlertsTableProps {
     station: string;
     value: string;
     time: string;
-    severity:
-      | "CRITICAL"
-      | "MODERATE"
-      | "MINOR";
+    severity: "CRITICAL" | "MODERATE" | "MINOR";
   }) => void;
 }
 
-export function AlertsTable({ sessionRole, onShowToast}: AlertsTableProps) {
+export function AlertsTable({ sessionRole, onShowToast }: AlertsTableProps) {
   const [search, setSearch] = useState("");
   const [limit] = useState(8);
   const [parameterTypeFilter, setParameterTypeFilter] = useState(0);
@@ -55,7 +56,7 @@ export function AlertsTable({ sessionRole, onShowToast}: AlertsTableProps) {
     },
   });
   const { notificationAlert } = useDashboard();
-  const [newAlerts, setNewAlerts] = useState<AlertLogWithDetails[] | null>([]); 
+  const [newAlerts, setNewAlerts] = useState<AlertLogWithDetails[] | null>([]);
 
   const fetchPage = useCallback(
     async (
@@ -131,13 +132,11 @@ export function AlertsTable({ sessionRole, onShowToast}: AlertsTableProps) {
   }, [fetchPage, fetchParameterTypes, fetchStations]);
   useEffect(() => {
     setNewAlerts(notificationAlert);
-    newAlerts?.map(alert => {
+    newAlerts?.map((alert) => {
       onShowToast({
         title: alert.name,
 
-        station:
-          alert.stations?.name ||
-          "Estação não encontrada",
+        station: alert.stations?.name || "Estação não encontrada",
 
         value: `${alert.operator} ${alert.value} ${
           alert.parameters.parameter_types?.symbol || ""
@@ -191,9 +190,7 @@ export function AlertsTable({ sessionRole, onShowToast}: AlertsTableProps) {
           severityFilter={severityFilter}
           onSeverityFilter={handleSeverityFilter}
           onSearch={handleSearch}
-          onParameterTypeFilter={
-            handleParameterTypeFilter
-          }
+          onParameterTypeFilter={handleParameterTypeFilter}
         />
 
         <div className="bg-card-background border border-border rounded-xl overflow-hidden">
@@ -235,8 +232,8 @@ export function AlertsTable({ sessionRole, onShowToast}: AlertsTableProps) {
                     <tr key={i}>
                       {Array.from({ length: 6 }).map((_, j) => (
                         <td key={j} className="px-4 py-3">
-                            <div className="h-4 rounded bg-border animate-pulse" />
-                          </td>
+                          <div className="h-4 rounded bg-border animate-pulse" />
+                        </td>
                       ))}
                     </tr>
                   ))
@@ -307,7 +304,7 @@ export function AlertsTable({ sessionRole, onShowToast}: AlertsTableProps) {
                         <td className="px-4 py-3 text-secondary-text text-xs hidden lg:table-cell">
                           {formatDate(alert.created_at)}
                         </td>
-                         {sessionRole !== "USER" && (
+                        {sessionRole !== "USER" && (
                           <>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-between">

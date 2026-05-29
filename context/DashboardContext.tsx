@@ -48,7 +48,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     data: [],
     pagination: { page: 1, limit: 4, total: 0, totalPages: 0 },
   });
-  const [notificationAlert, setNotificationAlert] = useState<AlertLogWithDetails[] | null>(null);
+  const [notificationAlert, setNotificationAlert] = useState<
+    AlertLogWithDetails[] | null
+  >(null);
   const [groups, setGroups] = useState<GroupingWithStationDetails[]>([]);
   const [params, setParams] = useState<ParameterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);

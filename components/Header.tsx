@@ -166,20 +166,20 @@ export function Header({ onMenuOpen }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-2">
-        <button
-          onClick={() => {
-            setNotifOpen(false);
-            startTour();
-          }}
-          className="p-2 rounded-lg text-secondary-text hover:text-primary hover:bg-primary/10 transition-colors"
-          title="Ver tutorial do sistema"
-        >
-          <CircleHelp size={20} />
-        </button>
+          <button
+            onClick={() => {
+              setNotifOpen(false);
+              startTour();
+            }}
+            className="p-2 rounded-lg text-secondary-text hover:text-primary hover:bg-primary/10 transition-colors"
+            title="Ver tutorial do sistema"
+          >
+            <CircleHelp size={20} />
+          </button>
 
           <div className="relative">
             <button
-            id="notification-bell-btn"
+              id="notification-bell-btn"
               onClick={handleBellClick}
               className="relative p-2 rounded-lg text-secondary-text hover:text-foreground hover:bg-card-background transition-colors"
               aria-label={`${unreadCount} notificações não lidas`}

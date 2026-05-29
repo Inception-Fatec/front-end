@@ -12,7 +12,6 @@ interface CreateAlertModalProps {
   stations: StationWithParameters[];
   onClose: () => void;
   onSuccess: () => void;
-  
 }
 
 export function CreateAlertModal({
