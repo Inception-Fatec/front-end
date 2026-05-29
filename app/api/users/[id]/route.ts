@@ -32,7 +32,11 @@ export async function GET(
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
   const { id } = await params;
-  const { allowed } = await canManageTarget(session.user.role as UserRole, session.user.id, id);
+  const { allowed } = await canManageTarget(
+    session.user.role as UserRole,
+    session.user.id,
+    id,
+  );
   if (!allowed)
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
@@ -42,7 +46,10 @@ export async function GET(
   `;
 
   if (rows.length === 0)
-    return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Usuário não encontrado." },
+      { status: 404 },
+    );
 
   return NextResponse.json(rows[0], { status: 200 });
 }
@@ -67,7 +74,10 @@ export async function PUT(
     const { name, email, password, role, status } = body;
 
     if (role !== undefined && role === "ADMIN" && !isAdmin)
-      return NextResponse.json({ error: "Você não tem permissão para atribuir role ADMIN." }, { status: 403 });
+      return NextResponse.json(
+        { error: "Você não tem permissão para atribuir role ADMIN." },
+        { status: 403 },
+      );
 
     if (role !== undefined) {
       const validRoles: UserRole[] = ["ADMIN", "OPERATOR", "USER"];
@@ -76,17 +86,24 @@ export async function PUT(
     }
 
     if (password !== undefined && password.length < 6)
-      return NextResponse.json({ error: "A senha deve ter no mínimo 6 caracteres." }, { status: 400 });
+      return NextResponse.json(
+        { error: "A senha deve ter no mínimo 6 caracteres." },
+        { status: 400 },
+      );
 
     const fields: Record<string, unknown> = {};
     if (name !== undefined) fields.name = name;
     if (email !== undefined) fields.email = email.toLowerCase().trim();
-    if (password !== undefined) fields.password = await bcrypt.hash(password, 10);
+    if (password !== undefined)
+      fields.password = await bcrypt.hash(password, 10);
     if (role !== undefined) fields.role = role;
     if (status !== undefined) fields.status = status;
 
     if (Object.keys(fields).length === 0)
-      return NextResponse.json({ error: "Nenhum campo para atualizar." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Nenhum campo para atualizar." },
+        { status: 400 },
+      );
 
     const setClauses = Object.keys(fields)
       .map((k, i) => `${k} = $${i + 2}`)
@@ -95,15 +112,21 @@ export async function PUT(
 
     const rows = await sql.unsafe(
       `UPDATE users SET ${setClauses} WHERE id = $1 RETURNING id, name, email, role, status, first_access, created_at`,
-      values,
+      values as string[],
     );
 
     if (rows.length === 0)
-      return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Usuário não encontrado." },
+        { status: 404 },
+      );
 
     return NextResponse.json(rows[0], { status: 200 });
   } catch {
-    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor." },
+      { status: 500 },
+    );
   }
 }
 
@@ -119,7 +142,10 @@ export async function DELETE(
   const sessionRole = session.user.role as UserRole;
 
   if (session.user.id === id)
-    return NextResponse.json({ error: "Você não pode deletar sua própria conta." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Você não pode deletar sua própria conta." },
+      { status: 400 },
+    );
 
   const { allowed } = await canManageTarget(sessionRole, session.user.id, id);
   if (!allowed)
@@ -127,5 +153,8 @@ export async function DELETE(
 
   await sql`DELETE FROM users WHERE id = ${id}`;
 
-  return NextResponse.json({ message: "Usuário deletado com sucesso." }, { status: 200 });
+  return NextResponse.json(
+    { message: "Usuário deletado com sucesso." },
+    { status: 200 },
+  );
 }

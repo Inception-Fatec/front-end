@@ -17,7 +17,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const rows = await sql`
           SELECT id, name, email, password, role, status, first_access
           FROM users
-          WHERE email = ${credentials.email}
+          WHERE email = ${credentials.email as string}
           LIMIT 1
         `;
 
