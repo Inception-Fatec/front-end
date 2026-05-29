@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { supabaseAdmin } from "@/lib/supabase";
+import sql from "@/lib/db-postgres";
 import bcrypt from "bcryptjs";
 import type { UserRole } from "@/types/user";
 
@@ -14,17 +14,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const { data: user, error } = await supabaseAdmin
-          .from("users")
-          .select("id, name, email, password, role, status, first_access")
-          .eq("email", credentials.email)
-          .single();
+        const rows = await sql`
+          SELECT id, name, email, password, role, status, first_access
+          FROM users
+          WHERE email = ${credentials.email}
+          LIMIT 1
+        `;
 
-        if (error) {
-          console.error("[auth] Erro ao buscar usuário:", error.message);
-          return null;
-        }
-
+        const user = rows[0];
         if (!user || !user.status) return null;
 
         const match = await bcrypt.compare(
@@ -51,11 +48,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = user.role;
         token.first_access = user.first_access;
       }
-
       if (trigger === "update" && session?.first_access !== undefined) {
         token.first_access = session.first_access;
       }
-
       return token;
     },
     async session({ session, token }) {
@@ -68,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 8, // 8 horas
+    maxAge: 60 * 60 * 8,
   },
 
   pages: {

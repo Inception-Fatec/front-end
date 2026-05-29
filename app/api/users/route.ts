@@ -1,24 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import sql from "@/lib/db-postgres";
 import type { UserRole, User } from "@/types/user";
 
 const PAGE_SIZE = 8;
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-
-  if (!session) {
+  if (!session)
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
 
   const isAdmin = session.user.role === "ADMIN";
   const isOperator = session.user.role === "OPERATOR";
 
-  if (!isAdmin && !isOperator) {
+  if (!isAdmin && !isOperator)
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
-  }
 
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
@@ -28,70 +25,47 @@ export async function GET(req: NextRequest) {
   );
   const search = searchParams.get("search") ?? "";
   const role = searchParams.get("role") ?? "";
+  const offset = (page - 1) * limit;
 
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+  const roleFilter = isOperator ? sql`AND role IN ('OPERATOR', 'USER')` : sql``;
+  const searchFilter = search
+    ? sql`AND (name ILIKE ${"%" + search + "%"} OR email ILIKE ${"%" + search + "%"})`
+    : sql``;
+  const roleParamFilter =
+    role && role !== "all" ? sql`AND role = ${role}` : sql``;
 
-  let query = supabaseAdmin
-    .from("users")
-    .select("id, name, email, role, status, first_access, created_at", {
-      count: "exact",
-    })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  const users = await sql<User[]>`
+    SELECT id, name, email, role, status, first_access, created_at
+    FROM users
+    WHERE 1=1 ${roleFilter} ${searchFilter} ${roleParamFilter}
+    ORDER BY created_at DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `;
 
-  if (isOperator) {
-    query = query.in("role", ["OPERATOR", "USER"]);
-  }
-
-  if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
-  }
-
-  if (role && role !== "all") {
-    query = query.eq("role", role);
-  }
-
-  const {
-    data: users,
-    error,
-    count,
-  } = (await query) as {
-    data: User[] | null;
-    error: unknown;
-    count: number | null;
-  };
-
-  if (error) {
-    console.error("[GET /api/users] Supabase error:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar usuários." },
-      { status: 500 },
-    );
-  }
+  const [{ count }] = await sql<[{ count: number }]>`
+    SELECT COUNT(*)::int as count FROM users
+    WHERE 1=1 ${roleFilter} ${searchFilter} ${roleParamFilter}
+  `;
 
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return NextResponse.json(
-    { data: users ?? [], total, page, totalPages },
+    { data: users, total, page, totalPages },
     { status: 200 },
   );
 }
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-
-  if (!session) {
+  if (!session)
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  }
 
   const isAdmin = session.user.role === "ADMIN";
   const isOperator = session.user.role === "OPERATOR";
 
-  if (!isAdmin && !isOperator) {
+  if (!isAdmin && !isOperator)
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
-  }
 
   try {
     const body: {
@@ -101,71 +75,53 @@ export async function POST(req: NextRequest) {
       role: UserRole;
     } = await req.json();
     const { name, password, role } = body;
-
     const email = body.email?.toLowerCase().trim();
 
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password || !role)
       return NextResponse.json(
         { error: "name, email, password e role são obrigatórios." },
         { status: 400 },
       );
-    }
 
     const supportedRoles: UserRole[] = ["ADMIN", "OPERATOR", "USER"];
-    if (!supportedRoles.includes(role)) {
+    if (!supportedRoles.includes(role))
       return NextResponse.json(
         { error: `Role inválido: ${role}.` },
         { status: 400 },
       );
-    }
 
     const allowedRoles: UserRole[] = isAdmin
       ? supportedRoles
       : ["OPERATOR", "USER"];
-    if (!allowedRoles.includes(role)) {
+    if (!allowedRoles.includes(role))
       return NextResponse.json(
         {
           error: `Você não tem permissão para criar um usuário com role ${role}.`,
         },
         { status: 403 },
       );
-    }
 
-    if (password.length < 6) {
+    if (password.length < 6)
       return NextResponse.json(
         { error: "A senha deve ter no mínimo 6 caracteres." },
         { status: 400 },
       );
-    }
 
-    const { data: existing } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .ilike("email", email)
-      .single();
-
-    if (existing) {
+    const existing =
+      await sql`SELECT id FROM users WHERE email ILIKE ${email} LIMIT 1`;
+    if (existing.length > 0)
       return NextResponse.json(
         { error: "Email já está em uso." },
         { status: 409 },
       );
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const { data: user, error } = await supabaseAdmin
-      .from("users")
-      .insert({ name, email, password: hashedPassword, role, status: true })
-      .select("id, name, email, role, created_at")
-      .single();
-
-    if (error || !user) {
-      console.error("[POST /api/users] Supabase error:", error);
-      return NextResponse.json(
-        { error: "Erro ao criar usuário." },
-        { status: 500 },
-      );
-    }
+    const [user] = await sql<User[]>`
+      INSERT INTO users (name, email, password, role, status)
+      VALUES (${name}, ${email}, ${hashedPassword}, ${role}, true)
+      RETURNING id, name, email, role, created_at
+    `;
 
     return NextResponse.json(user, { status: 201 });
   } catch {

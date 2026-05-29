@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { ParametersTable } from "@/components/parameters/ParametersTable";
-import type { PaginatedParameters } from "@/types/parameter";
+import sql from "@/lib/db-postgres";
+import type { PaginatedParameters, ParameterType } from "@/types/parameter";
 
 export default async function ParametrosPage() {
   const session = await auth();
-
   if (!session) redirect("/login");
 
   let initialData: PaginatedParameters;
@@ -13,106 +13,57 @@ export default async function ParametrosPage() {
   let uniqueActiveCount = 0;
 
   try {
-    const { supabaseAdmin } = await import("@/lib/supabase");
+    const data = await sql<
+      ParameterType[]
+    >`SELECT pt.* FROM parameter_types pt ...`;
 
-    const [
-      { data, count, error },
-      { count: active, error: activeError },
-      { count: uniqueCount, error: uniqueError },
-    ] = await Promise.all([
-      supabaseAdmin
-        .from("parameter_types")
-        .select(
-          "id, name, unit, symbol, factor_value, offset_value, json_name",
-          {
-            count: "exact",
-          },
-        )
-        .order("id", { ascending: true })
-        .range(0, 4),
-      supabaseAdmin
-        .from("parameters")
-        .select("id", { count: "exact", head: true })
-        .eq("status", true),
-      supabaseAdmin
-        .from("parameter_types")
-        .select("id", { count: "exact", head: true }),
-    ]);
-
-    if (error) throw error;
-    if (activeError) throw activeError;
-    if (uniqueError) throw uniqueError;
+    const [{ count }] =
+      await sql`SELECT COUNT(*)::int as count FROM parameter_types`;
+    const [{ active }] =
+      await sql`SELECT COUNT(*)::int as active FROM parameters WHERE status = true`;
+    const [{ unique_count }] =
+      await sql`SELECT COUNT(*)::int as unique_count FROM parameter_types`;
 
     activeCount = active ?? 0;
-    uniqueActiveCount = uniqueCount ?? 0;
+    uniqueActiveCount = unique_count ?? 0;
 
-    const rows = (data ?? []) as PaginatedParameters["data"];
-    const parameterTypeIds = rows.map((row: { id: number }) => row.id);
+    const paramTypeIds = data.map((pt: { id: number }) => pt.id);
+    const linkedByType = new Map<number, { id: number; name: string }[]>();
+    paramTypeIds.forEach((id: number) => linkedByType.set(id, []));
 
-    const linkedStationsByType = new Map<
-      number,
-      { id: number; name: string }[]
-    >();
+    if (paramTypeIds.length > 0) {
+      const paramLinks = await sql<
+        Array<{ id_parameter_type: number; id_station: number }>
+      >`SELECT id_parameter_type, id_station FROM parameters ...`;
 
-    parameterTypeIds.forEach((parameterTypeId: number) => {
-      linkedStationsByType.set(parameterTypeId, []);
-    });
+     
+      const stationRows = await sql<
+        Array<{ id: number; name: string }>
+      >`SELECT id, name FROM stations ...`;
 
-    if (parameterTypeIds.length > 0) {
-      const { data: parameterLinks, error: parameterLinksError } =
-        await supabaseAdmin
-          .from("parameters")
-          .select("id_parameter_type,id_station")
-          .in("id_parameter_type", parameterTypeIds)
-          .eq("status", true);
-
-      if (parameterLinksError) throw parameterLinksError;
-
-      const stationIds = Array.from(
-        new Set(
-          (parameterLinks ?? []).map(
-            (link: { id_station: number }) => link.id_station,
-          ),
-        ),
+      const stationById = new Map(
+        stationRows.map((s: { id: number; name: string }) => [s.id, s]),
       );
 
-      const stationById = new Map<number, { id: number; name: string }>();
-
-      if (stationIds.length > 0) {
-        const { data: stationRows, error: stationRowsError } =
-          await supabaseAdmin
-            .from("stations")
-            .select("id,name")
-            .in("id", stationIds);
-
-        if (stationRowsError) throw stationRowsError;
-
-        (stationRows ?? []).forEach((station: { id: number; name: string }) => {
-          stationById.set(station.id, station);
-        });
+      for (const link of paramLinks as Array<{
+        id_parameter_type: number;
+        id_station: number;
+      }>) {
+        const station = stationById.get(link.id_station);
+        if (!station) continue;
+        const current = linkedByType.get(link.id_parameter_type) ?? [];
+        if (!current.some((s) => s.id === (station as { id: number }).id))
+          linkedByType.set(link.id_parameter_type, [
+            ...current,
+            station as { id: number; name: string },
+          ]);
       }
-
-      (parameterLinks ?? []).forEach(
-        (link: { id_parameter_type: number; id_station: number }) => {
-          const station = stationById.get(link.id_station);
-          if (!station) return;
-
-          const current =
-            linkedStationsByType.get(link.id_parameter_type) ?? [];
-          if (!current.some((existing) => existing.id === station.id)) {
-            linkedStationsByType.set(link.id_parameter_type, [
-              ...current,
-              station,
-            ]);
-          }
-        },
-      );
     }
 
     initialData = {
-      data: rows.map((parameterType: PaginatedParameters["data"][number]) => ({
-        ...parameterType,
-        linked_stations: linkedStationsByType.get(parameterType.id) ?? [],
+      data: data.map((pt: PaginatedParameters["data"][number]) => ({
+        ...pt,
+        linked_stations: linkedByType.get(pt.id) ?? [],
       })),
       pagination: {
         page: 1,
@@ -124,12 +75,7 @@ export default async function ParametrosPage() {
   } catch {
     initialData = {
       data: [],
-      pagination: {
-        page: 1,
-        limit: 5,
-        total: 0,
-        totalPages: 1,
-      },
+      pagination: { page: 1, limit: 5, total: 0, totalPages: 1 },
     };
   }
 

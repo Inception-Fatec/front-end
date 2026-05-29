@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import sql from "@/lib/db-postgres";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -13,52 +13,42 @@ export async function GET(
   const { id } = await params;
 
   try {
-    // Busca a estação com seus parâmetros
-    const { data: station, error: stationError } = await supabaseAdmin
-      .from("stations")
-      .select(
-        `
-        id,
-        name,
-        address,
-        latitude,
-        longitude,
-        id_datalogger,
-        last_measurement,
-        created_at,
-        status,
-        station_groupings ( id_grouping, groupings ( name ) ),
-        parameters (
-          id,
-          id_parameter_type,
-          status,
-          parameter_types ( name, unit, symbol )
-        )
-      `,
-      )
-      .eq("id", id)
-      .maybeSingle();
+    const [station] = await sql`
+      SELECT s.*,
+        json_agg(DISTINCT jsonb_build_object(
+          'id_grouping', sg.id_grouping,
+          'groupings', jsonb_build_object('name', g.name)
+        )) FILTER (WHERE sg.id IS NOT NULL) as station_groupings,
+        json_agg(DISTINCT jsonb_build_object(
+          'id', p.id,
+          'id_parameter_type', p.id_parameter_type,
+          'status', p.status,
+          'parameter_types', jsonb_build_object('name', pt.name, 'unit', pt.unit, 'symbol', pt.symbol)
+        )) FILTER (WHERE p.id IS NOT NULL) as parameters
+      FROM stations s
+      LEFT JOIN station_groupings sg ON sg.id_station = s.id
+      LEFT JOIN groupings g ON g.id = sg.id_grouping
+      LEFT JOIN parameters p ON p.id_station = s.id
+      LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+      WHERE s.id = ${id}
+      GROUP BY s.id
+    `;
 
-    if (stationError) throw stationError;
     if (!station)
       return NextResponse.json(
         { error: "Estação não encontrada." },
         { status: 404 },
       );
 
-    // Busca a última medição de cada parâmetro em paralelo
     const parametersWithLatest = await Promise.all(
-      station.parameters.map(async (param: { id: number }) => {
-        const { data, error } = await supabaseAdmin
-          .from("measurements")
-          .select("id, value, date_time")
-          .eq("id_parameter", param.id)
-          .order("date_time", { ascending: false })
-          .limit(1);
-
-        if (error) throw error;
-
-        return { ...param, measurements: data ?? [] };
+      (station.parameters ?? []).map(async (param: { id: number }) => {
+        const measurements = await sql`
+          SELECT id, value, date_time FROM measurements
+          WHERE id_parameter = ${param.id}
+          ORDER BY date_time DESC
+          LIMIT 1
+        `;
+        return { ...param, measurements };
       }),
     );
 

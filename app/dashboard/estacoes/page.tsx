@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { StationsTable } from "@/components/stations/StationsTable";
+import sql from "@/lib/db-postgres";
 import type { PaginatedStations, StationWithParameters } from "@/types/station";
 
 export default async function EstacoesPage() {
@@ -11,26 +12,24 @@ export default async function EstacoesPage() {
   let initialData: PaginatedStations;
 
   try {
-    const { supabaseAdmin } = await import("@/lib/supabase");
+    const data = await sql`
+      SELECT s.*,
+        json_agg(DISTINCT jsonb_build_object('id_grouping', sg.id_grouping, 'groupings', jsonb_build_object('name', g.name))) FILTER (WHERE sg.id IS NOT NULL) as station_groupings,
+        json_agg(DISTINCT jsonb_build_object('id', p.id, 'id_parameter_type', p.id_parameter_type, 'parameter_types', jsonb_build_object('name', pt.name, 'unit', pt.unit, 'symbol', pt.symbol))) FILTER (WHERE p.id IS NOT NULL) as parameters
+      FROM stations s
+      LEFT JOIN station_groupings sg ON sg.id_station = s.id
+      LEFT JOIN groupings g ON g.id = sg.id_grouping
+      LEFT JOIN parameters p ON p.id_station = s.id
+      LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+      GROUP BY s.id
+      ORDER BY s.created_at DESC
+      LIMIT 8
+    `;
 
-    const { data, count, error } = await supabaseAdmin
-      .from("stations")
-      .select(
-        `
-        id, name, address, latitude, longitude, id_datalogger,
-        last_measurement, created_at, status,
-        station_groupings ( id_grouping, groupings ( name ) ),
-        parameters ( id, id_parameter_type, parameter_types ( name, unit, symbol ) )
-      `,
-        { count: "exact" },
-      )
-      .order("created_at", { ascending: false })
-      .range(0, 7);
-
-    if (error) throw error;
+    const [{ count }] = await sql`SELECT COUNT(*)::int as count FROM stations`;
 
     initialData = {
-      data: (data ?? []) as unknown as StationWithParameters[],
+      data: data as unknown as StationWithParameters[],
       pagination: {
         page: 1,
         limit: 8,
