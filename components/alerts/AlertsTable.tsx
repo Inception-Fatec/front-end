@@ -222,9 +222,6 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
                     return (
                       <tr
                         key={alert.id}
-                        data-tour-id={
-                          index === 0 ? "tour-alerts-row" : undefined
-                        }
                         className="hover:bg-background/50 transition-colors"
                       >
                         <td className="px-4 py-3">
