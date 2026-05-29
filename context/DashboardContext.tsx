@@ -28,6 +28,7 @@ interface DashboardContextValue {
   stations: PaginatedStations;
   alerts: AlertLogWithDetails[];
   notifications: PaginatedAlertLogs;
+  notificationAlert: AlertLogWithDetails[] | null;
   groups: GroupingWithStationDetails[];
   params: ParameterSummary[];
   isLoading: boolean;
@@ -47,6 +48,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     data: [],
     pagination: { page: 1, limit: 4, total: 0, totalPages: 0 },
   });
+  const [notificationAlert, setNotificationAlert] = useState<AlertLogWithDetails[] | null>(null);
   const [groups, setGroups] = useState<GroupingWithStationDetails[]>([]);
   const [params, setParams] = useState<ParameterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +56,9 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const isFirstLoad = useRef(true);
   const isMounted = useRef(true);
+  const reloadAlertsRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastReloadRef = useRef<number>(0);
+  const alertsRef = useRef<AlertLogWithDetails[]>(alerts);
 
   const fetchAll = useCallback(async () => {
     if (isFirstLoad.current) setIsLoading(true);
@@ -118,15 +123,31 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "alert_logs" },
-        async () => {
-          const [al, n] = await Promise.all([
-            getAlertLogs({ page: 1, limit: 4, all: true }),
-            getAlertLogs({ page: 1, limit: 50, all: false }),
-          ]);
-          if (isMounted.current) {
+        () => {
+          if (reloadAlertsRef.current) clearTimeout(reloadAlertsRef.current);
+
+          const knownIds = new Set(alertsRef.current.map((a) => a.id));
+          const delay = Date.now() - lastReloadRef.current >= 1000 ? 0 : 300;
+
+          reloadAlertsRef.current = setTimeout(async () => {
+            lastReloadRef.current = Date.now();
+
+            const [al, n] = await Promise.all([
+              getAlertLogs({ page: 1, limit: 4, all: true }),
+              getAlertLogs({ page: 1, limit: 50, all: false }),
+            ]);
+
+            if (!isMounted.current) return;
+
+            const newAlerts = al.data.filter((a) => !knownIds.has(a.id));
+
             setAlerts(al.data);
             setNotifications(n);
-          }
+
+            if (newAlerts.length > 0) {
+              setNotificationAlert(newAlerts);
+            }
+          }, delay);
         },
       )
       .on(
@@ -244,6 +265,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         stations,
         alerts,
         notifications,
+        notificationAlert,
         groups,
         params,
         isLoading,
