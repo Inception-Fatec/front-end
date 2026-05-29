@@ -20,7 +20,6 @@ import { getAlertLogs } from "@/services/alert-logs";
 import { getStations } from "@/services/stations";
 import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
 import { PaginatedStations } from "@/types/station";
-import { supabase } from "@/lib/supabaseClient";
 import { Measurement } from "@/types/measurement";
 
 interface DashboardContextValue {
@@ -100,25 +99,35 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMounted.current = true;
-
-    const initialize = async () => {
-      await fetchAll();
-    };
-
-    void initialize();
-
+    void fetchAll();
     return () => {
       isMounted.current = false;
     };
   }, [fetchAll]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("dashboard-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "alert_logs" },
-        async () => {
+    let es: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      es = new EventSource("/api/events");
+
+      es.onmessage = async (event) => {
+        if (!isMounted.current) return;
+
+        let parsed: {
+          channel: string;
+          payload: Record<string, unknown> | null;
+        };
+        try {
+          parsed = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        const { channel, payload } = parsed;
+
+        if (channel === "alert_logs_channel") {
           const [al, n] = await Promise.all([
             getAlertLogs({ page: 1, limit: 4, all: true }),
             getAlertLogs({ page: 1, limit: 50, all: false }),
@@ -127,113 +136,69 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
             setAlerts(al.data);
             setNotifications(n);
           }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "stations",
-        },
-        async (payload) => {
-          const [st] = await Promise.all([
-            getStations({ page: 1, limit: 4, search: "" }),
-          ]);
+        }
 
+        if (channel === "stations_channel") {
+          const st = await getStations({ page: 1, limit: 4, search: "" });
           if (!isMounted.current) return;
-
           setStations(st);
 
+          if (payload) {
+            setStats((prev) => {
+              if (!prev) return prev;
+              let { totalStations, activeStations } = prev;
+
+              if (payload.eventType === "INSERT") {
+                totalStations += 1;
+                if (payload.status === true) activeStations += 1;
+              }
+              if (payload.eventType === "DELETE") {
+                totalStations -= 1;
+                if (payload.old_status === true) activeStations -= 1;
+              }
+              if (payload.eventType === "UPDATE") {
+                if (payload.old_status === true && payload.status === false)
+                  activeStations -= 1;
+                if (payload.old_status === false && payload.status === true)
+                  activeStations += 1;
+              }
+
+              return { ...prev, totalStations, activeStations };
+            });
+          }
+        }
+
+        if (channel === "measurements_channel" && payload) {
+          const measurement = payload as unknown as Measurement;
           setStats((prev) => {
             if (!prev) return prev;
-
-            let totalStations = prev.totalStations;
-            let activeStations = prev.activeStations;
-
-            if (payload.eventType === "INSERT") {
-              totalStations += 1;
-
-              if (payload.new.status === true) {
-                activeStations += 1;
-              }
-            }
-
-            if (payload.eventType === "DELETE") {
-              totalStations -= 1;
-
-              if (payload.old.status === true) {
-                activeStations -= 1;
-              }
-            }
-
-            if (payload.eventType === "UPDATE") {
-              const oldStatus = payload.old.status;
-              const newStatus = payload.new.status;
-
-              if (oldStatus === true && newStatus === false) {
-                activeStations -= 1;
-              }
-
-              if (oldStatus === false && newStatus === true) {
-                activeStations += 1;
-              }
-            }
-
-            return {
-              ...prev,
-              totalStations,
-              activeStations,
-            };
+            return { ...prev, lastUpdate: measurement.date_time };
           });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "measurements" },
-        (payload) => {
-          if (!isMounted.current) return;
+        }
 
-          const measurement = payload.new as Measurement;
+        if (channel === "groupings_channel" && payload) {
           setStats((prev) => {
             if (!prev) return prev;
-
-            return {
-              ...prev,
-              lastUpdate: measurement.date_time,
-            };
+            let { totalGroups } = prev;
+            if (payload.eventType === "INSERT") totalGroups += 1;
+            if (payload.eventType === "DELETE") totalGroups -= 1;
+            return { ...prev, totalGroups };
           });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groupings" },
-        (payload) => {
-          if (!isMounted.current) return;
-          setStats((prev) => {
-            if (!prev) return prev;
+        }
+      };
 
-            let totalGroups = prev.totalGroups;
+      es.onerror = () => {
+        es?.close();
+        // Reconecta após 5s em caso de erro
+        reconnectTimeout = setTimeout(connect, 5_000);
+      };
+    }
 
-            if (payload.eventType === "INSERT") {
-              totalGroups += 1;
-            }
-
-            if (payload.eventType === "DELETE") {
-              totalGroups -= 1;
-            }
-
-            return {
-              ...prev,
-              totalGroups,
-            };
-          });
-        },
-      )
-      .subscribe();
+    connect();
 
     return () => {
-      supabase.removeChannel(channel);
+      es?.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);
 
