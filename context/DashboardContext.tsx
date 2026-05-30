@@ -169,10 +169,10 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (channel === "measurements_channel" && payload) {
-          const measurement = payload as unknown as Measurement;
+          
           setStats((prev) => {
             if (!prev) return prev;
-            return { ...prev, lastUpdate: measurement.date_time };
+            return { ...prev, lastUpdate: new Date().toISOString() };
           });
         }
 

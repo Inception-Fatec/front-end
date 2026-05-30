@@ -57,14 +57,10 @@ export async function GET(req: NextRequest) {
     : null;
   const minutes = PERIOD_MINUTES[period] ?? 30;
 
-  function toLocalISO(date: Date): string {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-  }
 
   const now = new Date();
-  const since = toLocalISO(new Date(now.getTime() - minutes * 60_000));
-  const until = toLocalISO(now);
+  const since = new Date(now.getTime() - minutes * 60_000).toISOString();
+  const until = now.toISOString();
 
   try {
     let stationFilter = sql``;
