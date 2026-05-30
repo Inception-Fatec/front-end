@@ -112,7 +112,7 @@ export default function RelatoriosPage() {
           const ts = new Date(m.date_time).setMilliseconds(0);
           const current = timeMap.get(ts) ?? { total: 0, count: 0 };
           timeMap.set(ts, {
-            total: current.total + m.value,
+            total: current.total + Number(m.value),
             count: current.count + 1,
           });
         });

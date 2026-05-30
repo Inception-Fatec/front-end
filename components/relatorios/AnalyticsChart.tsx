@@ -27,9 +27,9 @@ export function AnalyticsChart({ chartData, isLoading }: AnalyticsChartProps) {
           .map((m): SeriesPoint => {
             const ts = new Date(m.date_time + "Z").getTime();
             if (isPressure) {
-              return { x: ts, y: m.value / 1000, realValue: m.value };
+              return { x: ts, y: Number(m.value) / 1000, realValue: Number(m.value) };
             }
-            return [ts, m.value];
+            return [ts, Number(m.value)];
           })
           .sort((a, b) => {
             const aTs = Array.isArray(a) ? a[0] : a.x;
