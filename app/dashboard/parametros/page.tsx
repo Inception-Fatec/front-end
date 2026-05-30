@@ -13,9 +13,11 @@ export default async function ParametrosPage() {
   let uniqueActiveCount = 0;
 
   try {
-    const data = await sql<
-      ParameterType[]
-    >`SELECT pt.* FROM parameter_types pt ...`;
+    const data = await sql<ParameterType[]>`
+      SELECT pt.* FROM parameter_types pt
+      ORDER BY pt.id ASC
+      LIMIT 5 OFFSET 0
+    `;
 
     const [{ count }] =
       await sql`SELECT COUNT(*)::int as count FROM parameter_types`;
@@ -34,12 +36,18 @@ export default async function ParametrosPage() {
     if (paramTypeIds.length > 0) {
       const paramLinks = await sql<
         Array<{ id_parameter_type: number; id_station: number }>
-      >`SELECT id_parameter_type, id_station FROM parameters ...`;
+      >`
+        SELECT id_parameter_type, id_station FROM parameters
+        WHERE id_parameter_type = ANY(${paramTypeIds}) AND status = true
+      `;
 
-     
-      const stationRows = await sql<
-        Array<{ id: number; name: string }>
-      >`SELECT id, name FROM stations ...`;
+      const stationIds = [...new Set(paramLinks.map((l) => l.id_station))];
+
+      const stationRows = stationIds.length > 0
+        ? await sql<Array<{ id: number; name: string }>>`
+            SELECT id, name FROM stations WHERE id = ANY(${stationIds})
+          `
+        : [];
 
       const stationById = new Map(
         stationRows.map((s: { id: number; name: string }) => [s.id, s]),
