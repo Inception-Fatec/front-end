@@ -145,8 +145,7 @@ export default function RelatoriosPage() {
       const dateParams = new URLSearchParams();
       if (startDate)
         dateParams.append("start_date", new Date(startDate).toISOString());
-      if (endDate)
-        const endDateObj = new Date(endDate); endDateObj.setDate(endDateObj.getDate() + 1); dateParams.append("end_date", endDateObj.toISOString());
+        if (endDate) { const endDateObj = new Date(endDate); endDateObj.setDate(endDateObj.getDate() + 1); dateParams.append("end_date", endDateObj.toISOString()); }
 
       if (groupId !== null) {
         const groupRes = await fetch(`/api/groupings?id=${groupId}`);
