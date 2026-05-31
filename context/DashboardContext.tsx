@@ -27,6 +27,7 @@ interface DashboardContextValue {
   stations: PaginatedStations;
   alerts: AlertLogWithDetails[];
   notifications: PaginatedAlertLogs;
+  notificationAlert: AlertLogWithDetails[];
   groups: GroupingWithStationDetails[];
   params: ParameterSummary[];
   isLoading: boolean;
@@ -209,6 +210,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         stations,
         alerts,
         notifications,
+        notificationAlert: notifications.data,
         groups,
         params,
         isLoading,
