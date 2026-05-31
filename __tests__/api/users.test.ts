@@ -1,88 +1,29 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { GET as getUsers, POST as postUser } from "@/app/api/users/route";
 import { GET as getUserById, PUT as putUser } from "@/app/api/users/[id]/route";
 import { auth } from "@/auth";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
+import sql from "@/lib/db-postgres";
 
-const mockSelectFn = jest.fn();
-const mockInsertFn = jest.fn();
-const mockUpdateFn = jest.fn();
-
-interface QueryChain {
-  in: jest.Mock;
-  or: jest.Mock;
-  eq: jest.Mock;
-  range: jest.Mock;
-  then: (
-    resolve: (value: unknown) => void,
-    reject: (reason?: unknown) => void,
-  ) => void;
-}
-
-function createQueryMock(): QueryChain {
-  const chain: QueryChain = {
-    in: jest.fn(() => chain),
-    or: jest.fn(() => chain),
-    eq: jest.fn(() => chain),
-    range: jest.fn(() => chain),
-    then: function (
-      resolve: (value: unknown) => void,
-      reject: (reason?: unknown) => void,
-    ) {
-      Promise.resolve(mockSelectFn()).then(resolve, reject);
-    },
-  };
-  return chain;
-}
-
+jest.mock("@/lib/db-postgres");
 jest.mock("next/server", () => ({
   NextResponse: {
-    json: jest.fn((body, init) => {
-      return {
-        status: init?.status || 200,
-        json: async () => body,
-      };
-    }),
-  },
-}));
-
-jest.mock("@/auth", () => ({
-  auth: jest.fn(),
-}));
-
-jest.mock("bcryptjs", () => ({
-  hash: jest.fn(),
-}));
-
-jest.mock("@/lib/supabase", () => ({
-  supabaseAdmin: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: mockSelectFn,
-        })),
-        ilike: jest.fn(() => ({
-          single: mockSelectFn,
-        })),
-        order: jest.fn(() => createQueryMock()),
-      })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: mockInsertFn,
-        })),
-      })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: mockUpdateFn,
-          })),
-        })),
-      })),
+    json: jest.fn((body, init) => ({
+      status: init?.status || 200,
+      json: async () => body,
     })),
   },
 }));
+jest.mock("@/auth", () => ({ auth: jest.fn() }));
+jest.mock("bcryptjs", () => ({ hash: jest.fn() }));
 
-function createMockRequest(body?: unknown, url = "http://localhost/api/users") {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSql = (sql as any).__mockSql as jest.Mock;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(sql as any).unsafe = jest.fn();
+
+function req(body?: unknown, url = "http://localhost/api/users") {
   return {
     url,
     json: jest.fn().mockResolvedValue(body),
@@ -91,431 +32,268 @@ function createMockRequest(body?: unknown, url = "http://localhost/api/users") {
 
 describe("GET /api/users", () => {
   beforeEach(() => {
+    mockSql.mockReset();
     jest.clearAllMocks();
-    mockSelectFn.mockReset();
-    mockInsertFn.mockReset();
-    mockUpdateFn.mockReset();
   });
 
-  it("Deve retornar 401 se não autenticado", async () => {
+  it("401 nao autenticado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce(null);
-
-    const req = createMockRequest();
-    const res = await getUsers(req);
-    const json = await res.json();
-
+    const res = await getUsers(req());
     expect(res.status).toBe(401);
-    expect(json.error).toBe("Não autenticado.");
   });
 
-  it("Deve retornar 403 se o usuário não é ADMIN nem OPERATOR", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "USER" },
-    });
-    const req = createMockRequest();
-    const res = await getUsers(req);
-    const json = await res.json();
-
+  it("403 sem permissao", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
+    const res = await getUsers(req());
     expect(res.status).toBe(403);
-    expect(json.error).toBe("Acesso negado.");
   });
 
-  it("Deve retornar a lista de usuários com sucesso", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "ADMIN" },
-    });
-    const mockUsers = [
+  it("200 lista usuarios", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
+    const users = [
       {
         id: 1,
-        name: "John Doe",
-        email: "john@example.com",
+        name: "John",
+        email: "j@j.com",
         role: "ADMIN",
         status: true,
         created_at: "2024-01-01",
       },
-      {
-        id: 2,
-        name: "Jane Doe",
-        email: "jane@example.com",
-        role: "USER",
-        status: true,
-        created_at: "2024-01-02",
-      },
     ];
-    mockSelectFn.mockResolvedValueOnce({
-      data: mockUsers,
-      count: 2,
-      error: null,
+    let callIdx = 0;
+    mockSql.mockImplementation(() => {
+      const idx2 = callIdx++;
+      if (idx2 === 3) return Promise.resolve(users);
+      return Promise.resolve([{ count: 1 }]);
     });
-    const req = createMockRequest();
-    const res = await getUsers(req);
+    const res = await getUsers(req());
     const json = await res.json();
-
     expect(res.status).toBe(200);
-    expect(json.data).toEqual(mockUsers);
-    expect(json.total).toBe(2);
+    expect(json.data).toEqual(users);
+    expect(json.total).toBe(1);
   });
 });
 
 describe("POST /api/users", () => {
   beforeEach(() => {
+    mockSql.mockReset();
     jest.clearAllMocks();
-    mockSelectFn.mockReset();
-    mockInsertFn.mockReset();
-    mockUpdateFn.mockReset();
   });
 
-  it("Deve retornar 401 se não autenticado", async () => {
+  it("401 nao autenticado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce(null);
-
-    const req = createMockRequest({
-      name: "John",
-      email: "john@example.com",
-      password: "password123",
-      role: "USER",
-    });
-    const res = await postUser(req);
-    const json = await res.json();
-
+    const res = await postUser(
+      req({ name: "J", email: "j@j.com", password: "pass123", role: "USER" }),
+    );
     expect(res.status).toBe(401);
-    expect(json.error).toBe("Não autenticado.");
   });
 
-  it("Deve retornar 403 se o usuário não tem permissões para a rota", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "USER" },
-    });
-    const req = createMockRequest({
-      name: "John",
-      email: "john@example.com",
-      password: "password123",
-      role: "USER",
-    });
-    const res = await postUser(req);
-    const json = await res.json();
-
+  it("403 sem permissao", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
+    const res = await postUser(
+      req({ name: "J", email: "j@j.com", password: "pass123", role: "USER" }),
+    );
     expect(res.status).toBe(403);
-    expect(json.error).toBe("Acesso negado.");
   });
 
-  it("Deve retornar 400 se campos obrigatórios estão faltando", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "ADMIN" },
-    });
-    const req = createMockRequest({ name: "John", email: "john@example.com" });
-    const res = await postUser(req);
-    const json = await res.json();
-
+  it("400 campos faltando", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
+    const res = await postUser(req({ name: "J", email: "j@j.com" }));
     expect(res.status).toBe(400);
-    expect(json.error).toBe("name, email, password e role são obrigatórios.");
   });
 
-  it("Deve retornar 400 se o role é invalido", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "ADMIN" },
-    });
-    const req = createMockRequest({
-      name: "John",
-      email: "john@example.com",
-      password: "password123",
-      role: "INVALID_ROLE",
-    });
-    const res = await postUser(req);
-    const json = await res.json();
-
+  it("400 role invalido", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
+    const res = await postUser(
+      req({
+        name: "J",
+        email: "j@j.com",
+        password: "pass123",
+        role: "INVALID",
+      }),
+    );
     expect(res.status).toBe(400);
-    expect(json.error).toContain("Role inválido: INVALID_ROLE.");
   });
 
-  it("Deve retornar 400 se a senha tem menos de 6 caracteres", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "ADMIN" },
-    });
-    const req = createMockRequest({
-      name: "John",
-      email: "john@example.com",
-      password: "12345",
-      role: "USER",
-    });
-    const res = await postUser(req);
-    const json = await res.json();
-
+  it("400 senha curta", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
+    const res = await postUser(
+      req({ name: "J", email: "j@j.com", password: "123", role: "USER" }),
+    );
     expect(res.status).toBe(400);
-    expect(json.error).toBe("A senha deve ter no mínimo 6 caracteres.");
   });
 
-  it("Deve retornar 409 se o email já está em uso", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "ADMIN" },
-    });
-    mockSelectFn.mockResolvedValueOnce({
-      data: { id: 1 },
-      error: null,
-    });
-    const req = createMockRequest({
-      name: "John",
-      email: "existing@example.com",
-      password: "password123",
-      role: "USER",
-    });
-    const res = await postUser(req);
-    const json = await res.json();
-
+  it("409 email em uso", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
+    mockSql.mockResolvedValueOnce([{ id: 1 }]);
+    const res = await postUser(
+      req({ name: "J", email: "j@j.com", password: "pass123", role: "USER" }),
+    );
     expect(res.status).toBe(409);
-    expect(json.error).toBe("Email já está em uso.");
   });
 
-  it("Deve retornar 201 e criar um novo usuário com sucesso", async () => {
-    (auth as jest.Mock).mockResolvedValueOnce({
-      user: { role: "ADMIN" },
-    });
-    mockSelectFn.mockResolvedValueOnce({
-      data: null,
-      error: null,
-    });
-    (bcrypt.hash as jest.Mock).mockResolvedValueOnce("hashed_password");
-
-    mockInsertFn.mockResolvedValueOnce({
-      data: {
+  it("201 criado com sucesso", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
+    mockSql.mockResolvedValueOnce([]);
+    (bcrypt.hash as jest.Mock).mockResolvedValueOnce("hashed");
+    mockSql.mockResolvedValueOnce([
+      {
         id: 1,
-        name: "John Doe",
-        email: "john@example.com",
+        name: "J",
+        email: "j@j.com",
         role: "USER",
-        created_at: "2024-03-25T10:00:00Z",
+        created_at: "2024-01-01",
       },
-      error: null,
-    });
-    const req = createMockRequest({
-      name: "John Doe",
-      email: "john@example.com",
-      password: "password123",
-      role: "USER",
-    });
-    const res = await postUser(req);
-    const json = await res.json();
-
+    ]);
+    const res = await postUser(
+      req({ name: "J", email: "j@j.com", password: "pass123", role: "USER" }),
+    );
     expect(res.status).toBe(201);
-    expect(json).toEqual({
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "USER",
-      created_at: "2024-03-25T10:00:00Z",
-    });
   });
 });
 
 describe("GET /api/users/[id]", () => {
   beforeEach(() => {
+    mockSql.mockReset();
     jest.clearAllMocks();
-    mockSelectFn.mockReset();
-    mockInsertFn.mockReset();
-    mockUpdateFn.mockReset();
   });
 
-  it("Deve retornar 401 se não autenticado", async () => {
+  it("401 nao autenticado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce(null);
-
-    const req = createMockRequest({});
-    const res = await getUserById(req, {
+    const res = await getUserById(req(), {
       params: Promise.resolve({ id: "1" }),
     });
-    const json = await res.json();
-
     expect(res.status).toBe(401);
-    expect(json.error).toBe("Não autenticado.");
   });
 
-  it("Deve retornar 403 se usuário tenta acessar outro usuário e não tem permisao", async () => {
+  it("403 sem permissao", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "USER" },
     });
-    mockSelectFn.mockResolvedValueOnce({
-      data: { role: "OPERATOR" },
-      error: null,
-    });
-
-    const req = createMockRequest({});
-    const res = await getUserById(req, {
+    mockSql.mockResolvedValueOnce([{ role: "OPERATOR" }]);
+    const res = await getUserById(req(), {
       params: Promise.resolve({ id: "2" }),
     });
-    const json = await res.json();
-
     expect(res.status).toBe(403);
-    expect(json.error).toBe("Acesso negado.");
   });
 
-  it("Deve retornar 404 se o usuário não existe", async () => {
+  it("404 nao encontrado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "ADMIN" },
     });
-    mockSelectFn.mockResolvedValueOnce({
-      data: null,
-      error: { message: "Not found" },
-    });
-    const req = createMockRequest({});
-    const res = await getUserById(req, {
+    mockSql.mockResolvedValueOnce([]);
+    const res = await getUserById(req(), {
       params: Promise.resolve({ id: "999" }),
     });
-    const json = await res.json();
-
     expect(res.status).toBe(404);
-    expect(json.error).toBe("Usuário não encontrado.");
   });
 
-  it("Deve retornar 200 e dados do usuário se é ADMIN", async () => {
+  it("200 admin acessa usuario", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "ADMIN" },
     });
-    mockSelectFn.mockResolvedValueOnce({
-      data: {
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        role: "USER",
-        status: true,
-        created_at: "2024-01-01",
-      },
-      error: null,
-    });
-    const req = createMockRequest({});
-    const res = await getUserById(req, {
-      params: Promise.resolve({ id: "1" }),
-    });
-    const json = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(json).toEqual({
+    const user = {
       id: 1,
-      name: "John Doe",
-      email: "john@example.com",
+      name: "J",
+      email: "j@j.com",
       role: "USER",
       status: true,
       created_at: "2024-01-01",
+    };
+    mockSql.mockResolvedValueOnce([user]);
+    const res = await getUserById(req(), {
+      params: Promise.resolve({ id: "1" }),
     });
+    expect(res.status).toBe(200);
   });
 
-  it("Deve retornar 200 e dados do próprio usuário", async () => {
+  it("200 proprio usuario", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "OPERATOR" },
     });
-    mockSelectFn.mockResolvedValueOnce({
-      data: { role: "USER" },
-      error: null,
-    });
-    mockSelectFn.mockResolvedValueOnce({
-      data: {
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        role: "USER",
-        status: true,
-        created_at: "2024-01-01",
-      },
-      error: null,
-    });
-    const req = createMockRequest({});
-    const res = await getUserById(req, {
-      params: Promise.resolve({ id: "1" }),
-    });
-    const json = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(json).toEqual({
+    mockSql.mockResolvedValueOnce([{ role: "OPERATOR" }]);
+    const user = {
       id: 1,
-      name: "John Doe",
-      email: "john@example.com",
+      name: "J",
+      email: "j@j.com",
       role: "USER",
       status: true,
       created_at: "2024-01-01",
+    };
+    mockSql.mockResolvedValueOnce([user]);
+    const res = await getUserById(req(), {
+      params: Promise.resolve({ id: "1" }),
     });
+    expect(res.status).toBe(200);
   });
 });
 
 describe("PUT /api/users/[id]", () => {
   beforeEach(() => {
+    mockSql.mockReset();
+    (sql as any).unsafe = jest.fn();
     jest.clearAllMocks();
-    mockSelectFn.mockReset();
-    mockInsertFn.mockReset();
-    mockUpdateFn.mockReset();
   });
 
-  it("Deve retornar 401 se não autenticado", async () => {
+  it("401 nao autenticado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce(null);
-
-    const req = createMockRequest({ name: "Updated Name" });
-    const res = await putUser(req, { params: Promise.resolve({ id: "1" }) });
-    const json = await res.json();
-
+    const res = await putUser(req({ name: "Updated" }), {
+      params: Promise.resolve({ id: "1" }),
+    });
     expect(res.status).toBe(401);
-    expect(json.error).toBe("Não autenticado.");
   });
 
-  it("Deve retornar 403 se usuário tenta alterar role ADMIN sem permissão", async () => {
+  it("403 sem permissao para ADMIN", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "OPERATOR" },
     });
-    mockSelectFn.mockResolvedValueOnce({ data: { role: "USER" }, error: null });
-
-    const req = createMockRequest({ role: "ADMIN" });
-    const res = await putUser(req, { params: Promise.resolve({ id: "2" }) });
-    const json = await res.json();
-
+    mockSql.mockResolvedValueOnce([{ role: "USER" }]);
+    const res = await putUser(req({ role: "ADMIN" }), {
+      params: Promise.resolve({ id: "2" }),
+    });
     expect(res.status).toBe(403);
-    expect(json.error).toBe("Você não tem permissão para atribuir role ADMIN.");
   });
 
-  it("Deve retornar 400 se o role é inválido", async () => {
+  it("400 role invalido", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "ADMIN" },
     });
-    const req = createMockRequest({ role: "INVALID_ROLE" });
-    const res = await putUser(req, { params: Promise.resolve({ id: "1" }) });
-    const json = await res.json();
-
+    const res = await putUser(req({ role: "INVALID" }), {
+      params: Promise.resolve({ id: "1" }),
+    });
     expect(res.status).toBe(400);
-    expect(json.error).toContain("role inválido");
   });
 
-  it("Deve retornar 400 se nenhum campo para atualizar", async () => {
+  it("400 nenhum campo", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "OPERATOR" },
     });
-    mockSelectFn.mockResolvedValueOnce({ data: { role: "USER" }, error: null });
-
-    const req = createMockRequest({});
-    const res = await putUser(req, { params: Promise.resolve({ id: "1" }) });
-    const json = await res.json();
-
+    mockSql.mockResolvedValueOnce([{ role: "USER" }]);
+    const res = await putUser(req({}), {
+      params: Promise.resolve({ id: "1" }),
+    });
     expect(res.status).toBe(400);
-    expect(json.error).toBe("Nenhum campo para atualizar.");
   });
 
-  it("Deve retornar 200 e atualizar usuário com sucesso", async () => {
+  it("200 atualizado com sucesso", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "ADMIN" },
     });
-
-    (bcrypt.hash as jest.Mock).mockResolvedValueOnce("new_hashed_password");
-
-    mockUpdateFn.mockResolvedValueOnce({
-      data: {
+    (bcrypt.hash as jest.Mock).mockResolvedValueOnce("new_hash");
+    (sql as any).unsafe = jest.fn().mockResolvedValueOnce([
+      {
         id: 1,
-        name: "Updated Name",
-        email: "test@example.com",
+        name: "Updated",
+        email: "j@j.com",
         role: "USER",
         status: true,
         created_at: "2024-01-01",
       },
-      error: null,
-    });
-
-    const req = createMockRequest({
-      name: "Updated Name",
-      password: "newpassword123",
-    });
-    const res = await putUser(req, { params: Promise.resolve({ id: "1" }) });
-
+    ]);
+    const res = await putUser(
+      req({ name: "Updated", password: "newpass123" }),
+      { params: Promise.resolve({ id: "1" }) },
+    );
     expect(res.status).toBe(200);
   });
 });

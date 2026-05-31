@@ -1,11 +1,6 @@
 import { auth } from "@/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import sql from "@/lib/db-postgres";
 import { NextRequest, NextResponse } from "next/server";
-import type {
-  Grouping,
-  GroupingWithStations,
-  GroupingWithStationDetails,
-} from "@/types/grouping";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -15,8 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const body: Pick<Grouping, "name"> & { stations?: number[] } =
-      await req.json();
+    const body = await req.json();
     const { name, stations } = body;
 
     if (!name)
@@ -25,80 +19,40 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
 
-    const { data: existing } = await supabaseAdmin
-      .from("groupings")
-      .select("id")
-      .eq("name", name)
-      .maybeSingle();
-
-    if (existing)
+    const existing =
+      await sql`SELECT id FROM groupings WHERE name = ${name} LIMIT 1`;
+    if (existing.length > 0)
       return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
 
     if (Array.isArray(stations) && stations.length > 0) {
-      const { data: validStations, error: checkError } = await supabaseAdmin
-        .from("stations")
-        .select("id")
-        .in("id", stations);
-
-      if (checkError) throw checkError;
-
-      if (!validStations || validStations.length !== stations.length) {
+      const valid =
+        await sql`SELECT id FROM stations WHERE id = ANY(${stations})`;
+      if (valid.length !== stations.length)
         return NextResponse.json(
           { error: "Uma ou mais estações informadas não existem." },
           { status: 400 },
         );
-      }
     }
 
-    const { data: group, error: groupError } = await supabaseAdmin
-      .from("groupings")
-      .insert({ name })
-      .select("id")
-      .maybeSingle();
-
-    if (groupError || !group) {
-      console.error("Supabase error ao criar grupo:", groupError);
-      return NextResponse.json(
-        { error: "Erro ao criar grupo." },
-        { status: 500 },
-      );
-    }
+    const [group] =
+      await sql`INSERT INTO groupings (name) VALUES (${name}) RETURNING id`;
 
     if (Array.isArray(stations) && stations.length > 0) {
-      const stationGroupings = stations.map((id_station: number) => ({
-        id_station,
-        id_grouping: group.id,
-      }));
-
-      const { error: relationError } = await supabaseAdmin
-        .from("station_groupings")
-        .insert(stationGroupings);
-
-      if (relationError) {
-        console.error("Supabase error ao vincular estações:", relationError);
-        return NextResponse.json(
-          { error: "Erro ao vincular estações ao grupo." },
-          { status: 500 },
-        );
-      }
+      await sql`
+        INSERT INTO station_groupings (id_station, id_grouping)
+        SELECT unnest(${stations}::int[]), ${group.id}
+      `;
     }
 
-    const { data: groupWithStations, error: fetchError } = await supabaseAdmin
-      .from("groupings")
-      .select(`*, station_groupings ( id_station )`)
-      .eq("id", group.id)
-      .maybeSingle();
+    const [result] = await sql`
+      SELECT g.*, json_agg(json_build_object('id_station', sg.id_station)) as station_groupings
+      FROM groupings g
+      LEFT JOIN station_groupings sg ON sg.id_grouping = g.id
+      WHERE g.id = ${group.id}
+      GROUP BY g.id
+    `;
 
-    if (fetchError || !groupWithStations) {
-      return NextResponse.json(
-        { error: "Erro ao buscar grupo criado." },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(groupWithStations as GroupingWithStations, {
-      status: 201,
-    });
+    return NextResponse.json(result, { status: 201 });
   } catch {
     return NextResponse.json(
       { error: "Erro interno do servidor." },
@@ -117,25 +71,21 @@ export async function GET(req: NextRequest) {
 
   try {
     if (id) {
-      const { data: group, error } = await supabaseAdmin
-        .from("groupings")
-        .select(
-          `
-          id,
-          name,
-          station_groupings (
-            stations (
-              id,
-              name,
-              status
+      const [group] = await sql`
+        SELECT
+          g.id, g.name,
+          json_agg(
+            json_build_object(
+              'stations', json_build_object('id', s.id, 'name', s.name, 'status', s.status)
             )
-          )
-        `,
-        )
-        .eq("id", id)
-        .maybeSingle();
+          ) FILTER (WHERE s.id IS NOT NULL) as station_groupings
+        FROM groupings g
+        LEFT JOIN station_groupings sg ON sg.id_grouping = g.id
+        LEFT JOIN stations s ON s.id = sg.id_station
+        WHERE g.id = ${id}
+        GROUP BY g.id
+      `;
 
-      if (error) throw error;
       if (!group)
         return NextResponse.json(
           { error: "Grupo não encontrado." },
@@ -145,27 +95,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(group, { status: 200 });
     }
 
-    const { data: allGroups, error } = await supabaseAdmin
-      .from("groupings")
-      .select(
-        `
-        id,
-        name,
-        station_groupings (
-          stations (
-            id,
-            name
+    const groups = await sql`
+      SELECT
+        g.id, g.name,
+        json_agg(
+          json_build_object(
+            'stations', json_build_object('id', s.id, 'name', s.name)
           )
-        )
-      `,
-      )
-      .order("id");
+        ) FILTER (WHERE s.id IS NOT NULL) as station_groupings
+      FROM groupings g
+      LEFT JOIN station_groupings sg ON sg.id_grouping = g.id
+      LEFT JOIN stations s ON s.id = sg.id_station
+      GROUP BY g.id
+      ORDER BY g.id
+    `;
 
-    if (error) throw error;
-
-    return NextResponse.json(allGroups as GroupingWithStationDetails[], {
-      status: 200,
-    });
+    return NextResponse.json(groups, { status: 200 });
   } catch (error) {
     console.error("Erro no GET groupings:", error);
     return NextResponse.json(
@@ -183,101 +128,58 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const body: Partial<Grouping> & { id: number; stations?: number[] } =
-      await req.json();
+    const body = await req.json();
     const { id, name, stations } = body;
 
     if (!id)
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
     if (name) {
-      const { data: existing } = await supabaseAdmin
-        .from("groupings")
-        .select("id")
-        .eq("name", name)
-        .neq("id", id)
-        .maybeSingle();
-
-      if (existing)
+      const existing =
+        await sql`SELECT id FROM groupings WHERE name = ${name} AND id != ${id} LIMIT 1`;
+      if (existing.length > 0)
         return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
 
-      const { error: updateError } = await supabaseAdmin
-        .from("groupings")
-        .update({ name })
-        .eq("id", id);
-
-      if (updateError) {
-        console.error("Supabase error ao atualizar nome:", updateError);
-        return NextResponse.json(
-          { error: "Erro ao atualizar nome do grupo." },
-          { status: 500 },
-        );
-      }
+      await sql`UPDATE groupings SET name = ${name} WHERE id = ${id}`;
     }
 
     if (stations !== undefined) {
       if (Array.isArray(stations) && stations.length > 0) {
-        const { data: validStations, error: checkError } = await supabaseAdmin
-          .from("stations")
-          .select("id")
-          .in("id", stations);
-
-        if (checkError) throw checkError;
-
-        if (!validStations || validStations.length !== stations.length) {
+        const valid =
+          await sql`SELECT id FROM stations WHERE id = ANY(${stations})`;
+        if (valid.length !== stations.length)
           return NextResponse.json(
             { error: "Uma ou mais estações informadas não existem." },
             { status: 400 },
           );
-        }
       }
 
-      const { error: deleteError } = await supabaseAdmin
-        .from("station_groupings")
-        .delete()
-        .eq("id_grouping", id);
-
-      if (deleteError) throw deleteError;
+      await sql`DELETE FROM station_groupings WHERE id_grouping = ${id}`;
 
       if (Array.isArray(stations) && stations.length > 0) {
-        const stationGroupings = stations.map((id_station: number) => ({
-          id_station,
-          id_grouping: id,
-        }));
-
-        const { error: insertError } = await supabaseAdmin
-          .from("station_groupings")
-          .insert(stationGroupings);
-
-        if (insertError) throw insertError;
+        await sql`
+          INSERT INTO station_groupings (id_station, id_grouping)
+          SELECT unnest(${stations}::int[]), ${id}
+        `;
       }
     }
 
-    const { data: updatedGroup, error: fetchError } = await supabaseAdmin
-      .from("groupings")
-      .select(
-        `
-        id,
-        name,
-        station_groupings (
-          stations (
-            id,
-            name
+    const [updated] = await sql`
+      SELECT
+        g.id, g.name,
+        json_agg(
+          json_build_object(
+            'stations', json_build_object('id', s.id, 'name', s.name)
           )
-        )
-      `,
-      )
-      .eq("id", id)
-      .maybeSingle();
+        ) FILTER (WHERE s.id IS NOT NULL) as station_groupings
+      FROM groupings g
+      LEFT JOIN station_groupings sg ON sg.id_grouping = g.id
+      LEFT JOIN stations s ON s.id = sg.id_station
+      WHERE g.id = ${id}
+      GROUP BY g.id
+    `;
 
-    if (fetchError || !updatedGroup) {
-      return NextResponse.json(
-        { error: "Erro ao buscar grupo atualizado." },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(updatedGroup, { status: 200 });
+    return NextResponse.json(updated, { status: 200 });
   } catch (error) {
     console.error("Erro no PUT groupings:", error);
     return NextResponse.json(
@@ -295,43 +197,20 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const { id }: { id: number } = await req.json();
-
+    const { id } = await req.json();
     if (!id)
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
-    const { data: existing, error: checkError } = await supabaseAdmin
-      .from("groupings")
-      .select("id")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (checkError) throw checkError;
-    if (!existing)
+    const existing =
+      await sql`SELECT id FROM groupings WHERE id = ${id} LIMIT 1`;
+    if (existing.length === 0)
       return NextResponse.json(
         { error: "Grupo não encontrado." },
         { status: 404 },
       );
 
-    const { error: deleteLinksError } = await supabaseAdmin
-      .from("station_groupings")
-      .delete()
-      .eq("id_grouping", id);
-
-    if (deleteLinksError) {
-      console.error("Erro ao deletar vínculos do grupo:", deleteLinksError);
-      return NextResponse.json(
-        { error: "Erro ao desvincular estações do grupo." },
-        { status: 500 },
-      );
-    }
-
-    const { error: deleteGroupError } = await supabaseAdmin
-      .from("groupings")
-      .delete()
-      .eq("id", id);
-
-    if (deleteGroupError) throw deleteGroupError;
+    await sql`DELETE FROM station_groupings WHERE id_grouping = ${id}`;
+    await sql`DELETE FROM groupings WHERE id = ${id}`;
 
     return NextResponse.json(
       { message: "Grupo excluído com sucesso." },

@@ -1,14 +1,21 @@
 import { auth } from "@/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import sql from "@/lib/db-postgres";
 import { NextRequest, NextResponse } from "next/server";
-import type {
-  Station,
-  CreateStation,
-  UpdateStation,
-  StationWithGroupings,
-  StationWithDetails,
-  PaginatedStations,
-} from "@/types/station";
+
+async function fetchAllMeasurements(
+  parameterId: number,
+  startDate: string | null,
+  endDate: string,
+) {
+  const start = startDate ? sql`AND date_time >= ${startDate}` : sql``;
+  return await sql`
+    SELECT id, value, date_time FROM measurements
+    WHERE id_parameter = ${parameterId}
+    AND date_time <= ${endDate}
+    ${start}
+    ORDER BY date_time ASC
+  `;
+}
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -18,10 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const body: CreateStation & {
-      parameters?: number[];
-      groupings?: number[];
-    } = await req.json();
+    const body = await req.json();
     const {
       name,
       id_datalogger,
@@ -32,168 +36,75 @@ export async function POST(req: NextRequest) {
       groupings,
     } = body;
 
-    if (!name || !id_datalogger) {
+    if (!name || !id_datalogger)
       return NextResponse.json(
-        { error: "todos os campos são obrigatórios" },
+        { error: "Todos os campos são obrigatórios." },
         { status: 400 },
       );
-    }
 
-    const { data: existing } = await supabaseAdmin
-      .from("stations")
-      .select("id")
-      .eq("name", name)
-      .maybeSingle();
-
-    if (existing)
+    const existingName =
+      await sql`SELECT id FROM stations WHERE name = ${name} LIMIT 1`;
+    if (existingName.length > 0)
       return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
 
-    const { data: existingDatalogger } = await supabaseAdmin
-      .from("stations")
-      .select("id")
-      .eq("id_datalogger", id_datalogger)
-      .maybeSingle();
-
-    if (existingDatalogger)
+    const existingDatalogger =
+      await sql`SELECT id FROM stations WHERE id_datalogger = ${id_datalogger} LIMIT 1`;
+    if (existingDatalogger.length > 0)
       return NextResponse.json(
         { error: "Datalogger já está em uso por outra estação." },
         { status: 409 },
       );
 
     if (Array.isArray(groupings) && groupings.length > 0) {
-      const { data: validGroups, error: checkError } = await supabaseAdmin
-        .from("groupings")
-        .select("id")
-        .in("id", groupings);
-
-      if (checkError) throw checkError;
-
-      if (!validGroups || validGroups.length !== groupings.length) {
+      const valid =
+        await sql`SELECT id FROM groupings WHERE id = ANY(${groupings})`;
+      if (valid.length !== groupings.length)
         return NextResponse.json(
           { error: "Um ou mais grupos informados não existem no sistema." },
           { status: 400 },
         );
-      }
     }
 
-    const { data: station, error } = await supabaseAdmin
-      .from("stations")
-      .insert({
-        name,
-        id_datalogger,
-        address: address ?? null,
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
-        status: true,
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (error || !station) {
-      console.error("Supabase error ao criar estação:", error);
-      return NextResponse.json(
-        { error: "Erro ao criar estação." },
-        { status: 500 },
-      );
-    }
+    const [station] = await sql`
+      INSERT INTO stations (name, id_datalogger, address, latitude, longitude, status)
+      VALUES (${name}, ${id_datalogger}, ${address ?? null}, ${latitude ?? null}, ${longitude ?? null}, true)
+      RETURNING id
+    `;
 
     if (Array.isArray(parameters) && parameters.length > 0) {
-      const parameterRows = parameters.map((id_parameter_type: number) => ({
-        id_station: station.id,
-        id_parameter_type,
-        status: true,
-      }));
-
-      const { error: paramError } = await supabaseAdmin
-        .from("parameters")
-        .insert(parameterRows);
-
-      if (paramError) {
-        console.error("Supabase error ao vincular parâmetros:", paramError);
-        return NextResponse.json(
-          { error: "Estação criada mas erro ao vincular parâmetros." },
-          { status: 500 },
-        );
-      }
+      await sql`
+        INSERT INTO parameters (id_station, id_parameter_type, status)
+        SELECT ${station.id}, unnest(${parameters}::int[]), true
+      `;
     }
 
     if (Array.isArray(groupings) && groupings.length > 0) {
-      const stationGroupings = groupings.map((id_grouping: number) => ({
-        id_station: station.id,
-        id_grouping,
-      }));
-
-      const { error: groupingError } = await supabaseAdmin
-        .from("station_groupings")
-        .insert(stationGroupings);
-
-      if (groupingError) {
-        console.error("Supabase error ao inserir grupos:", groupingError);
-        return NextResponse.json(
-          { error: "Erro ao associar grupos à estação." },
-          { status: 500 },
-        );
-      }
+      await sql`
+        INSERT INTO station_groupings (id_station, id_grouping)
+        SELECT ${station.id}, unnest(${groupings}::int[])
+      `;
     }
 
-    const { data: stationWithGroupings, error: fetchError } =
-      await supabaseAdmin
-        .from("stations")
-        .select(
-          `*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ) )`,
-        )
-        .eq("id", station.id)
-        .maybeSingle();
+    const [result] = await sql`
+      SELECT s.*,
+        json_agg(DISTINCT jsonb_build_object('id_grouping', sg.id_grouping, 'groupings', jsonb_build_object('name', g.name))) FILTER (WHERE sg.id IS NOT NULL) as station_groupings,
+        json_agg(DISTINCT jsonb_build_object('id', p.id, 'id_parameter_type', p.id_parameter_type, 'status', p.status, 'parameter_types', jsonb_build_object('name', pt.name, 'unit', pt.unit))) FILTER (WHERE p.id IS NOT NULL) as parameters
+      FROM stations s
+      LEFT JOIN station_groupings sg ON sg.id_station = s.id
+      LEFT JOIN groupings g ON g.id = sg.id_grouping
+      LEFT JOIN parameters p ON p.id_station = s.id
+      LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+      WHERE s.id = ${station.id}
+      GROUP BY s.id
+    `;
 
-    if (fetchError || !stationWithGroupings) {
-      return NextResponse.json(
-        { error: "Erro ao buscar estação criada." },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(stationWithGroupings, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch {
     return NextResponse.json(
       { error: "Erro interno do servidor." },
       { status: 500 },
     );
   }
-}
-
-async function fetchAllMeasurements(
-  parameterId: number,
-  startDate: string | null,
-  endDate: string,
-): Promise<{ id: number; value: number; date_time: string }[]> {
-  const PAGE = 1000;
-  let from = 0;
-  let all: { id: number; value: number; date_time: string }[] = [];
-
-  while (true) {
-    let query = supabaseAdmin
-      .from("measurements")
-      .select("id, value, date_time")
-      .eq("id_parameter", parameterId)
-      .lte("date_time", endDate)
-      .order("date_time", { ascending: true })
-      .range(from, from + PAGE - 1);
-
-    if (startDate) {
-      query = query.gte("date_time", startDate);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-
-    all = all.concat(data);
-    if (data.length < PAGE) break;
-
-    from += PAGE;
-  }
-
-  return all;
 }
 
 export async function GET(req: NextRequest) {
@@ -208,31 +119,27 @@ export async function GET(req: NextRequest) {
 
   try {
     if (id) {
-      const { data: station, error } = await supabaseAdmin
-        .from("stations")
-        .select(
-          `
-          *,
-          station_groupings ( id_grouping, groupings ( name ) ),
-          parameters (
-            id,
-            id_parameter_type,
-            status,
-            parameter_types ( name, unit )
-          )
-        `,
-        )
-        .eq("id", id)
-        .maybeSingle();
+      const [station] = await sql`
+        SELECT s.*,
+          json_agg(DISTINCT jsonb_build_object('id_grouping', sg.id_grouping, 'groupings', jsonb_build_object('name', g.name))) FILTER (WHERE sg.id IS NOT NULL) as station_groupings,
+          json_agg(DISTINCT jsonb_build_object('id', p.id, 'id_parameter_type', p.id_parameter_type, 'status', p.status, 'parameter_types', jsonb_build_object('name', pt.name, 'unit', pt.unit))) FILTER (WHERE p.id IS NOT NULL) as parameters
+        FROM stations s
+        LEFT JOIN station_groupings sg ON sg.id_station = s.id
+        LEFT JOIN groupings g ON g.id = sg.id_grouping
+        LEFT JOIN parameters p ON p.id_station = s.id
+        LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+        WHERE s.id = ${id}
+        GROUP BY s.id
+      `;
 
-      if (error) throw error;
       if (!station)
         return NextResponse.json(
           { error: "Estação não encontrada." },
           { status: 404 },
         );
+
       const parametersWithMeasurements = await Promise.all(
-        station.parameters.map(async (param: { id: number }) => {
+        (station.parameters ?? []).map(async (param: { id: number }) => {
           const measurements = await fetchAllMeasurements(
             param.id,
             startDate,
@@ -243,13 +150,11 @@ export async function GET(req: NextRequest) {
       );
 
       return NextResponse.json(
-        {
-          ...station,
-          parameters: parametersWithMeasurements,
-        } as StationWithDetails,
+        { ...station, parameters: parametersWithMeasurements },
         { status: 200 },
       );
     }
+
     const page = Math.max(1, Number(searchParams.get("page") ?? 1));
     const search = searchParams.get("search") || "";
     const rawLimit = searchParams.get("limit");
@@ -257,58 +162,57 @@ export async function GET(req: NextRequest) {
     const limit = isAll
       ? null
       : Math.min(Math.max(Number(rawLimit ?? 10), 1), 50);
-
-    let queryList = supabaseAdmin
-      .from("stations")
-      .select(
-        `*,
-        station_groupings ( id_grouping, groupings ( name ) ),
-        parameters ( id, id_parameter_type, parameter_types ( name, unit, symbol ) )`,
-        { count: "exact" },
-      )
-      .order("name", { ascending: true });
-
-    if (search) {
-      queryList = queryList.ilike("name", `%${search}%`);
-    }
-
+    const offset = isAll ? null : (page - 1) * (limit ?? 10);
     const statusParam = searchParams.get("status");
-    if (statusParam === "active") {
-      queryList = queryList.eq("status", true);
-    } else if (statusParam === "inactive") {
-      queryList = queryList.eq("status", false);
-    }
-
     const groupId = searchParams.get("grouping");
 
+    const searchFilter = search
+      ? sql`AND s.name ILIKE ${"%" + search + "%"}`
+      : sql``;
+    const statusFilter =
+      statusParam === "active"
+        ? sql`AND s.status = true`
+        : statusParam === "inactive"
+          ? sql`AND s.status = false`
+          : sql``;
+
+    let groupFilter = sql``;
     if (groupId && groupId !== "all") {
-      const { data: stationIds, error: groupError } = await supabaseAdmin
-        .from("station_groupings")
-        .select("id_station")
-        .eq("id_grouping", Number(groupId));
-
-      if (groupError) throw groupError;
-
-      const ids = (stationIds ?? []).map(
-        (r: { id_station: number }) => r.id_station,
-      );
-      if (ids.length === 0) {
+      const stationIds = await sql<
+        Array<{ id_station: number }>
+      >`SELECT id_station FROM station_groupings WHERE id_grouping = ${Number(groupId)}`;
+      const ids = stationIds.map((r: { id_station: number }) => r.id_station);
+      if (ids.length === 0)
         return NextResponse.json(
           { data: [], pagination: { page, limit, total: 0, totalPages: 1 } },
           { status: 200 },
         );
-      }
-      queryList = queryList.in("id", ids);
+      groupFilter = sql`AND s.id = ANY(${ids})`;
     }
 
-    if (!isAll && limit !== null) {
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      queryList = queryList.range(from, to);
-    }
+    const paginationClause = isAll
+      ? sql``
+      : sql`LIMIT ${limit} OFFSET ${offset}`;
 
-    const { data, error, count } = await queryList;
-    if (error) throw error;
+    const data = await sql`
+      SELECT s.*,
+        json_agg(DISTINCT jsonb_build_object('id_grouping', sg.id_grouping, 'groupings', jsonb_build_object('name', g.name))) FILTER (WHERE sg.id IS NOT NULL) as station_groupings,
+        json_agg(DISTINCT jsonb_build_object('id', p.id, 'id_parameter_type', p.id_parameter_type, 'parameter_types', jsonb_build_object('name', pt.name, 'unit', pt.unit, 'symbol', pt.symbol))) FILTER (WHERE p.id IS NOT NULL) as parameters
+      FROM stations s
+      LEFT JOIN station_groupings sg ON sg.id_station = s.id
+      LEFT JOIN groupings g ON g.id = sg.id_grouping
+      LEFT JOIN parameters p ON p.id_station = s.id
+      LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+      WHERE 1=1 ${searchFilter} ${statusFilter} ${groupFilter}
+      GROUP BY s.id
+      ORDER BY s.name ASC
+      ${paginationClause}
+    `;
+
+    const [{ count }] = await sql`
+      SELECT COUNT(DISTINCT s.id)::int as count FROM stations s
+      WHERE 1=1 ${searchFilter} ${statusFilter} ${groupFilter}
+    `;
 
     return NextResponse.json(
       {
@@ -319,7 +223,7 @@ export async function GET(req: NextRequest) {
           total: count,
           totalPages: isAll ? 1 : Math.ceil((count || 0) / (limit || 1)),
         },
-      } as PaginatedStations,
+      },
       { status: 200 },
     );
   } catch (error) {
@@ -338,11 +242,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const body: UpdateStation & {
-      action?: "rename" | "disable";
-      parameters?: number[];
-      groupings?: number[];
-    } = await req.json();
+    const body = await req.json();
     const {
       id,
       name,
@@ -359,173 +259,84 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
     if (role === "OPERATOR") {
-      if (!name && status === undefined) {
+      if (!name && status === undefined)
         return NextResponse.json(
           { error: "Informe nome ou status para atualizar." },
           { status: 400 },
         );
-      }
 
       if (name) {
-        const { data: existing } = await supabaseAdmin
-          .from("stations")
-          .select("id")
-          .eq("name", name)
-          .neq("id", id)
-          .maybeSingle();
-
-        if (existing)
+        const existing =
+          await sql`SELECT id FROM stations WHERE name = ${name} AND id != ${id} LIMIT 1`;
+        if (existing.length > 0)
           return NextResponse.json(
             { error: "Nome já em uso." },
             { status: 409 },
           );
       }
 
-      const { data, error } = await supabaseAdmin
-        .from("stations")
-        .update({
-          ...(name && { name }),
-          ...(status !== undefined && { status }),
-        })
-        .eq("id", id)
-        .select()
-        .maybeSingle();
+      const [data] = await sql`
+        UPDATE stations SET
+          ${name ? sql`name = ${name},` : sql``}
+          ${status !== undefined ? sql`status = ${status}` : sql`status = status`}
+        WHERE id = ${id} RETURNING *
+      `;
 
-      if (error) {
-        console.error("Supabase error ao atualizar estação:", error);
-        return NextResponse.json(
-          { error: "Erro ao atualizar estação." },
-          { status: 500 },
-        );
-      }
       if (!data)
         return NextResponse.json(
           { error: "Estação não encontrada." },
           { status: 404 },
         );
 
-      return NextResponse.json(data as Station, { status: 200 });
+      return NextResponse.json(data, { status: 200 });
     }
 
     if (name) {
-      const { data: existing } = await supabaseAdmin
-        .from("stations")
-        .select("id")
-        .eq("name", name)
-        .neq("id", id)
-        .maybeSingle();
-
-      if (existing)
+      const existing =
+        await sql`SELECT id FROM stations WHERE name = ${name} AND id != ${id} LIMIT 1`;
+      if (existing.length > 0)
         return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("stations")
-      .update({ name, id_datalogger, status, address, latitude, longitude })
-      .eq("id", id)
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      console.error("Supabase error ao atualizar estação:", error);
-      return NextResponse.json(
-        { error: "Erro ao atualizar estação." },
-        { status: 500 },
-      );
-    }
-    if (!data)
-      return NextResponse.json(
-        { error: "Estação não encontrada." },
-        { status: 404 },
-      );
+    await sql`
+      UPDATE stations SET
+        name = ${name}, id_datalogger = ${id_datalogger}, status = ${status},
+        address = ${address}, latitude = ${latitude}, longitude = ${longitude}
+      WHERE id = ${id}
+    `;
 
     if (Array.isArray(parameters) && parameters.length > 0) {
-      const { error: deleteError } = await supabaseAdmin
-        .from("parameters")
-        .delete()
-        .eq("id_station", id);
-
-      if (deleteError) {
-        console.error(
-          "Supabase error ao remover parâmetros antigos:",
-          deleteError,
-        );
-        return NextResponse.json(
-          { error: "Erro ao atualizar parâmetros." },
-          { status: 500 },
-        );
-      }
-
-      const parameterRows = parameters.map((id_parameter_type: number) => ({
-        id_station: id,
-        id_parameter_type,
-        status: true,
-      }));
-
-      const { error: insertError } = await supabaseAdmin
-        .from("parameters")
-        .insert(parameterRows);
-
-      if (insertError) {
-        console.error("Supabase error ao inserir parâmetros:", insertError);
-        return NextResponse.json(
-          { error: "Erro ao atualizar parâmetros." },
-          { status: 500 },
-        );
-      }
+      await sql`DELETE FROM parameters WHERE id_station = ${id}`;
+      await sql`
+        INSERT INTO parameters (id_station, id_parameter_type, status)
+        SELECT ${id}, unnest(${parameters}::int[]), true
+      `;
     }
 
     if (groupings !== undefined) {
-      const { error: deleteError } = await supabaseAdmin
-        .from("station_groupings")
-        .delete()
-        .eq("id_station", id);
-
-      if (deleteError) {
-        return NextResponse.json(
-          { error: "Erro ao atualizar grupos." },
-          { status: 500 },
-        );
-      }
-
+      await sql`DELETE FROM station_groupings WHERE id_station = ${id}`;
       if (Array.isArray(groupings) && groupings.length > 0) {
-        const stationGroupings = groupings.map((id_grouping: number) => ({
-          id_station: id,
-          id_grouping,
-        }));
-
-        const { error: insertError } = await supabaseAdmin
-          .from("station_groupings")
-          .insert(stationGroupings);
-
-        if (insertError) {
-          return NextResponse.json(
-            { error: "Erro ao inserir grupos." },
-            { status: 500 },
-          );
-        }
+        await sql`
+          INSERT INTO station_groupings (id_station, id_grouping)
+          SELECT ${id}, unnest(${groupings}::int[])
+        `;
       }
     }
 
-    const { data: stationWithGroupings, error: fetchError } =
-      await supabaseAdmin
-        .from("stations")
-        .select(
-          `*, station_groupings ( id_grouping, groupings ( name ) ), parameters ( id, id_parameter_type, status, parameter_types ( name, unit ) )`,
-        )
-        .eq("id", id)
-        .maybeSingle();
+    const [result] = await sql`
+      SELECT s.*,
+        json_agg(DISTINCT jsonb_build_object('id_grouping', sg.id_grouping, 'groupings', jsonb_build_object('name', g.name))) FILTER (WHERE sg.id IS NOT NULL) as station_groupings,
+        json_agg(DISTINCT jsonb_build_object('id', p.id, 'id_parameter_type', p.id_parameter_type, 'status', p.status, 'parameter_types', jsonb_build_object('name', pt.name, 'unit', pt.unit))) FILTER (WHERE p.id IS NOT NULL) as parameters
+      FROM stations s
+      LEFT JOIN station_groupings sg ON sg.id_station = s.id
+      LEFT JOIN groupings g ON g.id = sg.id_grouping
+      LEFT JOIN parameters p ON p.id_station = s.id
+      LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+      WHERE s.id = ${id}
+      GROUP BY s.id
+    `;
 
-    if (fetchError || !stationWithGroupings) {
-      return NextResponse.json(
-        { error: "Erro ao buscar estação atualizada." },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json(stationWithGroupings as StationWithGroupings, {
-      status: 200,
-    });
+    return NextResponse.json(result, { status: 200 });
   } catch {
     return NextResponse.json(
       { error: "Erro interno ao atualizar." },
@@ -542,38 +353,21 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const { id }: { id: number } = await req.json();
+    const { id } = await req.json();
     if (!id)
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
-    const { data: existing } = await supabaseAdmin
-      .from("stations")
-      .select("id")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (!existing)
+    const existing =
+      await sql`SELECT id FROM stations WHERE id = ${id} LIMIT 1`;
+    if (existing.length === 0)
       return NextResponse.json(
         { error: "Estação não encontrada." },
         { status: 404 },
       );
 
-    await supabaseAdmin.from("station_groupings").delete().eq("id_station", id);
-
-    await supabaseAdmin.from("parameters").delete().eq("id_station", id);
-
-    const { error } = await supabaseAdmin
-      .from("stations")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      console.error("Erro ao deletar estação:", error);
-      return NextResponse.json(
-        { error: "Erro ao deletar estação." },
-        { status: 500 },
-      );
-    }
+    await sql`DELETE FROM station_groupings WHERE id_station = ${id}`;
+    await sql`DELETE FROM parameters WHERE id_station = ${id}`;
+    await sql`DELETE FROM stations WHERE id = ${id}`;
 
     return NextResponse.json(
       { message: "Estação deletada com sucesso." },

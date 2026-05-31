@@ -24,7 +24,7 @@ import { useDashboard } from "@/context/DashboardContext";
 
 interface AlertsTableProps {
   sessionRole: UserRole;
-  onShowToast: (data: {
+  onShowToast?: (data: {
     title: string;
     station: string;
     value: string;
@@ -133,7 +133,7 @@ export function AlertsTable({ sessionRole, onShowToast }: AlertsTableProps) {
   useEffect(() => {
     setNewAlerts(notificationAlert);
     newAlerts?.map((alert) => {
-      onShowToast({
+      onShowToast?.({
         title: alert.name,
 
         station: alert.stations?.name || "Estação não encontrada",

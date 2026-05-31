@@ -215,8 +215,14 @@ export function StationDrawer({
                       Coordenadas
                     </p>
                     <p className="text-xs text-foreground font-mono">
-                      {station.latitude.toFixed(4)}° /{" "}
-                      {station.longitude.toFixed(4)}°
+                      {station.latitude != null
+                        ? Number(station.latitude).toFixed(4)
+                        : "—"}
+                      ° /{" "}
+                      {station.longitude != null
+                        ? Number(station.longitude).toFixed(4)
+                        : "—"}
+                      °
                     </p>
                   </div>
                 )}

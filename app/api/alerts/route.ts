@@ -1,12 +1,10 @@
 import { auth } from "@/auth";
-import { supabaseAdmin } from "@/lib/supabase";
+import sql from "@/lib/db-postgres";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  PaginatedAlerts,
-  AlertSeverity,
-  AlertOperator,
-  Alert,
-} from "@/types/alert";
+import { AlertSeverity, AlertOperator, Alert } from "@/types/alert";
+
+const VALID_SEVERITIES: AlertSeverity[] = ["CRITICAL", "MODERATE", "MINOR"];
+const VALID_OPERATORS: AlertOperator[] = [">", "<", ">=", "<=", "="];
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -16,10 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const body: Pick<
-      Alert,
-      "name" | "message" | "severity" | "operator" | "value" | "status"
-    > & { parameters: number[] } = await req.json();
+    const body = await req.json();
     const { name, message, severity, operator, value, status, parameters } =
       body;
 
@@ -31,90 +26,43 @@ export async function POST(req: NextRequest) {
       !value ||
       !Array.isArray(parameters) ||
       parameters.length === 0
-    ) {
+    )
       return NextResponse.json(
         { error: "Campos obrigatórios não fornecidos." },
         { status: 400 },
       );
-    }
 
-    const validSeverities: AlertSeverity[] = ["CRITICAL", "MODERATE", "MINOR"];
-    if (!validSeverities.includes(severity as AlertSeverity)) {
+    if (!VALID_SEVERITIES.includes(severity))
       return NextResponse.json(
-        {
-          error: `severity inválida. Valores aceitos: ${validSeverities.join(", ")}`,
-        },
+        { error: `severity inválida.` },
         { status: 400 },
       );
-    }
 
-    const validOperators: AlertOperator[] = [">", "<", ">=", "<=", "="];
-    if (!validOperators.includes(operator as AlertOperator)) {
+    if (!VALID_OPERATORS.includes(operator))
       return NextResponse.json(
-        {
-          error: `operator inválido. Valores aceitos: ${validOperators.join(", ")}`,
-        },
+        { error: `operator inválido.` },
         { status: 400 },
       );
-    }
 
-    const { data: parameterTypes, error: parameterError } = await supabaseAdmin
-      .from("parameters")
-      .select("id_parameter_type")
-      .in("id", parameters);
-
-    if (parameterError) {
-      console.error("Supabase error ao validar parâmetros:", parameterError);
-      return NextResponse.json(
-        { error: "Erro ao validar parâmetros." },
-        { status: 500 },
-      );
-    }
-
-    const uniqueTypes = [
-      ...new Set(parameterTypes?.map((p) => p.id_parameter_type)),
-    ];
-
-    if (uniqueTypes.length > 1) {
+    const paramTypes = await sql`
+      SELECT DISTINCT id_parameter_type FROM parameters WHERE id = ANY(${parameters})
+    `;
+    if (paramTypes.length > 1)
       return NextResponse.json(
         { error: "Todos os parâmetros devem ser do mesmo tipo." },
         { status: 400 },
       );
-    }
 
-    const { data: alert, error: alertError } = await supabaseAdmin
-      .from("alerts")
-      .insert({ name, message, severity, operator, value, status })
-      .select("id, name, message, severity, operator, value, status")
-      .maybeSingle();
+    const [alert] = await sql`
+      INSERT INTO alerts (name, message, severity, operator, value, status)
+      VALUES (${name}, ${message}, ${severity}, ${operator}, ${value}, ${status ?? true})
+      RETURNING id, name, message, severity, operator, value, status
+    `;
 
-    if (alertError || !alert) {
-      console.error("Supabase error ao criar alerta:", alertError);
-      return NextResponse.json(
-        { error: "Erro ao criar alerta." },
-        { status: 500 },
-      );
-    }
-
-    const alertParameters = parameters.map((id_parameter: number) => ({
-      id_alert: alert.id,
-      id_parameter,
-    }));
-
-    const { error: alertParameterError } = await supabaseAdmin
-      .from("alert_parameters")
-      .insert(alertParameters);
-
-    if (alertParameterError) {
-      console.error(
-        "Supabase error ao criar alert_parameter:",
-        alertParameterError,
-      );
-      return NextResponse.json(
-        { error: "Erro ao criar alerta." },
-        { status: 500 },
-      );
-    }
+    await sql`
+      INSERT INTO alert_parameters (id_alert, id_parameter)
+      SELECT ${alert.id}, unnest(${parameters}::int[])
+    `;
 
     return NextResponse.json(alert as Alert, { status: 201 });
   } catch {
@@ -140,60 +88,62 @@ export async function GET(req: NextRequest) {
     const search = url.searchParams.get("search")?.trim() || "";
     const parameterType = Number(url.searchParams.get("parameterType") ?? 0);
     const severity = url.searchParams.get("severity")?.trim() || "";
+    const offset = (page - 1) * limit;
 
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    let query = supabaseAdmin
-      .from("alerts")
-      .select(
-        `
-        *,
-        alert_parameters (
-          *,
-          parameters (
-            parameter_types ( * ),
-            stations ( id, name )
-          )
-        )
-      `,
-        { count: "exact" },
+    const searchFilter = search
+      ? sql`AND a.name ILIKE ${"%" + search + "%"}`
+      : sql``;
+    const severityFilter = severity ? sql`AND a.severity = ${severity}` : sql``;
+    const paramTypeFilter = parameterType
+      ? sql`
+      AND a.id IN (
+        SELECT ap.id_alert FROM alert_parameters ap
+        INNER JOIN parameters p ON p.id = ap.id_parameter
+        WHERE p.id_parameter_type = ${parameterType}
       )
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    `
+      : sql``;
 
-    if (search) {
-      query = query.ilike("name", `%${search}%`);
-    }
+    const data = await sql`
+      SELECT
+        a.*,
+        json_agg(
+          json_build_object(
+            'id', ap.id,
+            'id_alert', ap.id_alert,
+            'id_parameter', ap.id_parameter,
+            'parameters', json_build_object(
+              'parameter_types', json_build_object('id', pt.id, 'name', pt.name, 'unit', pt.unit),
+              'stations', json_build_object('id', s.id, 'name', s.name)
+            )
+          )
+        ) as alert_parameters
+      FROM alerts a
+      LEFT JOIN alert_parameters ap ON ap.id_alert = a.id
+      LEFT JOIN parameters p ON p.id = ap.id_parameter
+      LEFT JOIN parameter_types pt ON pt.id = p.id_parameter_type
+      LEFT JOIN stations s ON s.id = p.id_station
+      WHERE 1=1 ${searchFilter} ${severityFilter} ${paramTypeFilter}
+      GROUP BY a.id
+      ORDER BY a.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
 
-    if (parameterType) {
-      const { data: matchingAlerts } = await supabaseAdmin
-        .from("alert_parameters")
-        .select("id_alert, parameters!inner(id_parameter_type)")
-        .eq("parameters.id_parameter_type", parameterType);
-
-      const ids = matchingAlerts?.map((a) => a.id_alert) ?? [];
-      query = query.in("id", ids.length ? ids : [-1]);
-    }
-
-    if (severity) {
-      query = query.eq("severity", severity);
-    }
-
-    const { data, error, count } = await query;
-
-    if (error) throw error;
+    const [{ count }] = await sql`
+      SELECT COUNT(DISTINCT a.id)::int as count FROM alerts a
+      WHERE 1=1 ${searchFilter} ${severityFilter} ${paramTypeFilter}
+    `;
 
     return NextResponse.json(
       {
-        data: data,
+        data,
         pagination: {
           page,
           limit,
           total: count,
           totalPages: Math.ceil((count || 0) / limit),
         },
-      } as PaginatedAlerts,
+      },
       { status: 200 },
     );
   } catch (error) {
@@ -210,106 +160,38 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   try {
-    const body: Pick<
-      Alert,
-      "id" | "name" | "message" | "severity" | "operator" | "value" | "status"
-    > & { parameters: number[] } = await req.json();
+    const body = await req.json();
     const { id, name, message, severity, operator, value, status, parameters } =
       body;
 
     if (!id)
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
-    if (!Array.isArray(parameters) || parameters.length === 0) {
+    if (!Array.isArray(parameters) || parameters.length === 0)
       return NextResponse.json(
-        { error: "Pelo menos uma estação é obrigatória." },
+        { error: "Pelo menos um parâmetro é obrigatório." },
         { status: 400 },
       );
-    }
 
-    const validSeverities: AlertSeverity[] = ["CRITICAL", "MODERATE", "MINOR"];
-    if (severity && !validSeverities.includes(severity as AlertSeverity)) {
-      return NextResponse.json(
-        {
-          error: `severity inválida. Valores aceitos: ${validSeverities.join(", ")}`,
-        },
-        { status: 400 },
-      );
-    }
-
-    const validOperators: AlertOperator[] = [">", "<", ">=", "<=", "="];
-    if (operator && !validOperators.includes(operator as AlertOperator)) {
-      return NextResponse.json(
-        {
-          error: `operator inválido. Valores aceitos: ${validOperators.join(", ")}`,
-        },
-        { status: 400 },
-      );
-    }
-
-    const { data: parameterTypes, error: parameterError } = await supabaseAdmin
-      .from("parameters")
-      .select("id_parameter_type")
-      .in("id", parameters);
-
-    if (parameterError) {
-      console.error("Supabase error ao validar parâmetros:", parameterError);
-      return NextResponse.json(
-        { error: "Erro ao validar parâmetros." },
-        { status: 500 },
-      );
-    }
-
-    const uniqueTypes = [
-      ...new Set(parameterTypes?.map((p) => p.id_parameter_type)),
-    ];
-    if (uniqueTypes.length > 1) {
+    const paramTypes = await sql`
+      SELECT DISTINCT id_parameter_type FROM parameters WHERE id = ANY(${parameters})
+    `;
+    if (paramTypes.length > 1)
       return NextResponse.json(
         { error: "Todos os parâmetros devem ser do mesmo tipo." },
         { status: 400 },
       );
-    }
 
-    const { data: updated, error: updateError } = await supabaseAdmin
-      .from("alerts")
-      .update({ name, message, severity, operator, value, status })
-      .eq("id", id)
-      .select()
-      .maybeSingle();
+    const [updated] = await sql`
+      UPDATE alerts SET name=${name}, message=${message}, severity=${severity},
+      operator=${operator}, value=${value}, status=${status}
+      WHERE id = ${id} RETURNING *
+    `;
 
-    if (updateError || !updated) {
-      return NextResponse.json(
-        { error: "Erro ao atualizar alerta." },
-        { status: 500 },
-      );
-    }
-
-    const { error: deleteError } = await supabaseAdmin
-      .from("alert_parameters")
-      .delete()
-      .eq("id_alert", id);
-
-    if (deleteError) {
-      return NextResponse.json(
-        { error: "Erro ao atualizar parâmetros." },
-        { status: 500 },
-      );
-    }
-
-    const alertParameters = parameters.map((id_parameter: number) => ({
-      id_alert: id,
-      id_parameter,
-    }));
-
-    const { error: insertError } = await supabaseAdmin
-      .from("alert_parameters")
-      .insert(alertParameters);
-
-    if (insertError) {
-      return NextResponse.json(
-        { error: "Erro ao atualizar parâmetros." },
-        { status: 500 },
-      );
-    }
+    await sql`DELETE FROM alert_parameters WHERE id_alert = ${id}`;
+    await sql`
+      INSERT INTO alert_parameters (id_alert, id_parameter)
+      SELECT ${id}, unnest(${parameters}::int[])
+    `;
 
     return NextResponse.json(updated as Alert, { status: 200 });
   } catch {
@@ -323,26 +205,21 @@ export async function PUT(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { id, status } = await req.json();
 
-  if (!id || status === undefined) {
+  if (!id || status === undefined)
     return NextResponse.json(
       { error: "id e status são obrigatórios." },
       { status: 400 },
     );
-  }
 
-  const { data, error } = await supabaseAdmin
-    .from("alerts")
-    .update({ status: status })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
+  const [data] = await sql`
+    UPDATE alerts SET status = ${status} WHERE id = ${id} RETURNING *
+  `;
 
-  if (error || !data) {
+  if (!data)
     return NextResponse.json(
       { error: "Erro ao atualizar status." },
       { status: 500 },
     );
-  }
 
   return NextResponse.json(data, { status: 200 });
 }
@@ -356,35 +233,14 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { id } = await req.json();
-
     if (!id)
       return NextResponse.json({ error: "id é obrigatório" }, { status: 400 });
 
-    const { error: alertParameterError } = await supabaseAdmin
-      .from("alert_parameters")
-      .delete()
-      .eq("id_alert", id);
-
-    if (alertParameterError) {
-      console.error("Erro ao deletar alert_parameters:", alertParameterError);
-      return NextResponse.json(
-        { error: "Erro ao deletar alert_parameters" },
-        { status: 500 },
-      );
-    }
-
-    const { error } = await supabaseAdmin.from("alerts").delete().eq("id", id);
-
-    if (error) {
-      console.error("Erro ao deletar:", error);
-      return NextResponse.json(
-        { error: "Erro ao deletar alerta" },
-        { status: 500 },
-      );
-    }
+    await sql`DELETE FROM alert_parameters WHERE id_alert = ${id}`;
+    await sql`DELETE FROM alerts WHERE id = ${id}`;
 
     return NextResponse.json(
-      { message: "Alerta deletada com sucesso" },
+      { message: "Alerta deletado com sucesso" },
       { status: 200 },
     );
   } catch {

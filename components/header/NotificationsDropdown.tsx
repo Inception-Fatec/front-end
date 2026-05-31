@@ -65,7 +65,9 @@ export function NotificationsDropdown({
 
   function formatDate(date: string) {
     const now = new Date().getTime();
-    const past = new Date(date).getTime();
+    const past = new Date(
+      date.includes("Z") || date.includes("+") ? date : date + "Z",
+    ).getTime();
 
     const diffMs = now - past;
 

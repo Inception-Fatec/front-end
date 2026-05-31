@@ -20,7 +20,7 @@ function buildDailyRainfall(
   param.measurements.forEach((m) => {
     const day = m.date_time.slice(0, 10);
     const current = dayMap.get(day) ?? 0;
-    dayMap.set(day, current + m.value);
+    dayMap.set(day, current + Number(m.value));
   });
 
   return Array.from(dayMap.entries())

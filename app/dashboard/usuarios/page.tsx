@@ -1,40 +1,36 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { UsersTable } from "@/components/users/UsersTable";
-import type { PaginatedUsers } from "@/types/user";
+import sql from "@/lib/db-postgres";
+import type { PaginatedUsers, User } from "@/types/user";
 
 export default async function UsuariosPage() {
   const session = await auth();
-
   if (!session) redirect("/login");
-
   if (session.user.role === "USER") redirect("/dashboard");
 
   let initialData: PaginatedUsers;
 
   try {
-    const { supabaseAdmin } = await import("@/lib/supabase");
-
     const isOperator = session.user.role === "OPERATOR";
+    const roleFilter = isOperator
+      ? sql`AND role IN ('OPERATOR', 'USER')`
+      : sql``;
 
-    let query = supabaseAdmin
-      .from("users")
-      .select("id, name, email, role, status, first_access, created_at", {
-        count: "exact",
-      })
-      .order("created_at", { ascending: false })
-      .range(0, 7);
+    const data = await sql<
+      User[]
+    >`SELECT id, name, email, role, status, first_access, created_at FROM users WHERE 1=1 ${roleFilter}
+  ORDER BY created_at DESC
+  LIMIT 8`;
 
-    if (isOperator) {
-      query = query.in("role", ["OPERATOR", "USER"]);
-    }
+    console.log("USERS DATA:", data);
 
-    const { data, count, error } = await query;
-
-    if (error) throw error;
+    const [{ count }] = await sql`
+      SELECT COUNT(*)::int as count FROM users WHERE 1=1 ${roleFilter}
+    `;
 
     initialData = {
-      data: data ?? [],
+      data,
       total: count ?? 0,
       page: 1,
       totalPages: Math.max(1, Math.ceil((count ?? 0) / 8)),

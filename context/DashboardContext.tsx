@@ -20,15 +20,13 @@ import { getAlertLogs } from "@/services/alert-logs";
 import { getStations } from "@/services/stations";
 import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
 import { PaginatedStations } from "@/types/station";
-import { supabase } from "@/lib/supabaseClient";
-import { Measurement } from "@/types/measurement";
 
 interface DashboardContextValue {
   stats: DashboardStats | null;
   stations: PaginatedStations;
   alerts: AlertLogWithDetails[];
   notifications: PaginatedAlertLogs;
-  notificationAlert: AlertLogWithDetails[] | null;
+  notificationAlert: AlertLogWithDetails[];
   groups: GroupingWithStationDetails[];
   params: ParameterSummary[];
   isLoading: boolean;
@@ -48,9 +46,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     data: [],
     pagination: { page: 1, limit: 4, total: 0, totalPages: 0 },
   });
-  const [notificationAlert, setNotificationAlert] = useState<
-    AlertLogWithDetails[] | null
-  >(null);
   const [groups, setGroups] = useState<GroupingWithStationDetails[]>([]);
   const [params, setParams] = useState<ParameterSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,9 +53,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const isFirstLoad = useRef(true);
   const isMounted = useRef(true);
-  const reloadAlertsRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastReloadRef = useRef<number>(0);
-  const alertsRef = useRef<AlertLogWithDetails[]>(alerts);
 
   const fetchAll = useCallback(async () => {
     if (isFirstLoad.current) setIsLoading(true);
@@ -107,156 +99,106 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMounted.current = true;
-
-    const initialize = async () => {
-      await fetchAll();
-    };
-
-    void initialize();
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchAll();
     return () => {
       isMounted.current = false;
     };
   }, [fetchAll]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("dashboard-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "alert_logs" },
-        () => {
-          if (reloadAlertsRef.current) clearTimeout(reloadAlertsRef.current);
+    let es: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-          const knownIds = new Set(alertsRef.current.map((a) => a.id));
-          const delay = Date.now() - lastReloadRef.current >= 1000 ? 0 : 300;
+    function connect() {
+      es = new EventSource("/api/events");
 
-          reloadAlertsRef.current = setTimeout(async () => {
-            lastReloadRef.current = Date.now();
+      es.onmessage = async (event) => {
+        if (!isMounted.current) return;
 
-            const [al, n] = await Promise.all([
-              getAlertLogs({ page: 1, limit: 4, all: true }),
-              getAlertLogs({ page: 1, limit: 50, all: false }),
-            ]);
+        let parsed: {
+          channel: string;
+          payload: Record<string, unknown> | null;
+        };
+        try {
+          parsed = JSON.parse(event.data);
+        } catch {
+          return;
+        }
 
-            if (!isMounted.current) return;
+        const { channel, payload } = parsed;
 
-            const newAlerts = al.data.filter((a) => !knownIds.has(a.id));
-
+        if (channel === "alert_logs_channel") {
+          const [al, n] = await Promise.all([
+            getAlertLogs({ page: 1, limit: 4, all: true }),
+            getAlertLogs({ page: 1, limit: 50, all: false }),
+          ]);
+          if (isMounted.current) {
             setAlerts(al.data);
             setNotifications(n);
+          }
+        }
 
-            if (newAlerts.length > 0) {
-              setNotificationAlert(newAlerts);
-            }
-          }, delay);
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "stations",
-        },
-        async (payload) => {
-          const [st] = await Promise.all([
-            getStations({ page: 1, limit: 4, search: "" }),
-          ]);
-
+        if (channel === "stations_channel") {
+          const st = await getStations({ page: 1, limit: 4, search: "" });
           if (!isMounted.current) return;
-
           setStations(st);
 
+          if (payload) {
+            setStats((prev) => {
+              if (!prev) return prev;
+              let { totalStations, activeStations } = prev;
+
+              if (payload.eventType === "INSERT") {
+                totalStations += 1;
+                if (payload.status === true) activeStations += 1;
+              }
+              if (payload.eventType === "DELETE") {
+                totalStations -= 1;
+                if (payload.old_status === true) activeStations -= 1;
+              }
+              if (payload.eventType === "UPDATE") {
+                if (payload.old_status === true && payload.status === false)
+                  activeStations -= 1;
+                if (payload.old_status === false && payload.status === true)
+                  activeStations += 1;
+              }
+
+              return { ...prev, totalStations, activeStations };
+            });
+          }
+        }
+
+        if (channel === "measurements_channel" && payload) {
           setStats((prev) => {
             if (!prev) return prev;
-
-            let totalStations = prev.totalStations;
-            let activeStations = prev.activeStations;
-
-            if (payload.eventType === "INSERT") {
-              totalStations += 1;
-
-              if (payload.new.status === true) {
-                activeStations += 1;
-              }
-            }
-
-            if (payload.eventType === "DELETE") {
-              totalStations -= 1;
-
-              if (payload.old.status === true) {
-                activeStations -= 1;
-              }
-            }
-
-            if (payload.eventType === "UPDATE") {
-              const oldStatus = payload.old.status;
-              const newStatus = payload.new.status;
-
-              if (oldStatus === true && newStatus === false) {
-                activeStations -= 1;
-              }
-
-              if (oldStatus === false && newStatus === true) {
-                activeStations += 1;
-              }
-            }
-
-            return {
-              ...prev,
-              totalStations,
-              activeStations,
-            };
+            return { ...prev, lastUpdate: new Date().toISOString() };
           });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "measurements" },
-        (payload) => {
-          if (!isMounted.current) return;
+        }
 
-          const measurement = payload.new as Measurement;
+        if (channel === "groupings_channel" && payload) {
           setStats((prev) => {
             if (!prev) return prev;
-
-            return {
-              ...prev,
-              lastUpdate: measurement.date_time,
-            };
+            let { totalGroups } = prev;
+            if (payload.eventType === "INSERT") totalGroups += 1;
+            if (payload.eventType === "DELETE") totalGroups -= 1;
+            return { ...prev, totalGroups };
           });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groupings" },
-        (payload) => {
-          if (!isMounted.current) return;
-          setStats((prev) => {
-            if (!prev) return prev;
+        }
+      };
 
-            let totalGroups = prev.totalGroups;
+      es.onerror = () => {
+        es?.close();
+        // Reconecta após 5s em caso de erro
+        reconnectTimeout = setTimeout(connect, 5_000);
+      };
+    }
 
-            if (payload.eventType === "INSERT") {
-              totalGroups += 1;
-            }
-
-            if (payload.eventType === "DELETE") {
-              totalGroups -= 1;
-            }
-
-            return {
-              ...prev,
-              totalGroups,
-            };
-          });
-        },
-      )
-      .subscribe();
+    connect();
 
     return () => {
-      supabase.removeChannel(channel);
+      es?.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);
 
@@ -267,7 +209,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         stations,
         alerts,
         notifications,
-        notificationAlert,
+        notificationAlert: notifications.data,
         groups,
         params,
         isLoading,
