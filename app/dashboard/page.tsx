@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { Radio, Zap, AlertTriangle, Clock, Layers } from "lucide-react";
 
 import { useDashboard } from "@/context/DashboardContext";
-import { useTour } from "@/context/TourContext";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { StationsTable } from "@/components/dashboard/StationsTable";

@@ -20,7 +20,6 @@ import { getAlertLogs } from "@/services/alert-logs";
 import { getStations } from "@/services/stations";
 import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
 import { PaginatedStations } from "@/types/station";
-import { Measurement } from "@/types/measurement";
 
 interface DashboardContextValue {
   stats: DashboardStats | null;
@@ -100,6 +99,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isMounted.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchAll();
     return () => {
       isMounted.current = false;
