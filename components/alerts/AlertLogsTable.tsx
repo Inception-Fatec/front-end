@@ -116,9 +116,13 @@ export function AlertLogsTable() {
 
   function formatDate(iso: string) {
     return (
-      new Date(iso.includes("Z") || iso.includes("+") ? iso : iso + "Z").toLocaleDateString("pt-BR") +
+      new Date(
+        iso.includes("Z") || iso.includes("+") ? iso : iso + "Z",
+      ).toLocaleDateString("pt-BR") +
       " " +
-      new Date(iso.includes("Z") || iso.includes("+") ? iso : iso + "Z").toLocaleTimeString("pt-BR")
+      new Date(
+        iso.includes("Z") || iso.includes("+") ? iso : iso + "Z",
+      ).toLocaleTimeString("pt-BR")
     );
   }
 

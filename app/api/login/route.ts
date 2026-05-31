@@ -8,7 +8,10 @@ export async function POST(req: NextRequest) {
     const { email, password } = body;
 
     if (!email || !password)
-      return NextResponse.json({ error: "email e password são obrigatórios." }, { status: 400 });
+      return NextResponse.json(
+        { error: "email e password são obrigatórios." },
+        { status: 400 },
+      );
 
     const rows = await sql`
       SELECT id, name, email, password, role, status
@@ -19,17 +22,29 @@ export async function POST(req: NextRequest) {
 
     const user = rows[0];
     if (!user)
-      return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Credenciais inválidas." },
+        { status: 401 },
+      );
 
     if (!user.status)
       return NextResponse.json({ error: "Usuário inativo." }, { status: 403 });
 
     const match = await bcrypt.compare(password, user.password);
     if (!match)
-      return NextResponse.json({ error: "Credenciais inválidas." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Credenciais inválidas." },
+        { status: 401 },
+      );
 
-    return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role }, { status: 200 });
+    return NextResponse.json(
+      { id: user.id, name: user.name, email: user.email, role: user.role },
+      { status: 200 },
+    );
   } catch {
-    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor." },
+      { status: 500 },
+    );
   }
 }

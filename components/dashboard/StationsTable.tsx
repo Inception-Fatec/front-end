@@ -49,7 +49,11 @@ export function StationsTable({ stations, isLoading }: StationsTableProps) {
   function timedifference(date_time: string | null) {
     if (!date_time) return "-";
     const agora = new Date().getTime();
-    const data = new Date(date_time.includes("Z") || date_time.includes("+") ? date_time : date_time + "Z").getTime();
+    const data = new Date(
+      date_time.includes("Z") || date_time.includes("+")
+        ? date_time
+        : date_time + "Z",
+    ).getTime();
     const diffMs = agora - data;
     const segundos = Math.floor(diffMs / 1000);
     const minutos = Math.floor(segundos / 60);

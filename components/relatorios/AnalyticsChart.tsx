@@ -25,7 +25,11 @@ export function AnalyticsChart({ chartData, isLoading }: AnalyticsChartProps) {
 
         const data: SeriesPoint[] = param.measurements
           .map((m): SeriesPoint | null => {
-            const ts = new Date(m.date_time.includes("Z") || m.date_time.includes("+") ? m.date_time : m.date_time + "Z").getTime();
+            const ts = new Date(
+              m.date_time.includes("Z") || m.date_time.includes("+")
+                ? m.date_time
+                : m.date_time + "Z",
+            ).getTime();
             const val = Number(m.value);
             if (isNaN(ts) || isNaN(val)) return null;
             if (isPressure) {

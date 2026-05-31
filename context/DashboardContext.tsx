@@ -170,7 +170,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (channel === "measurements_channel" && payload) {
-          
           setStats((prev) => {
             if (!prev) return prev;
             return { ...prev, lastUpdate: new Date().toISOString() };

@@ -43,11 +43,12 @@ export default async function ParametrosPage() {
 
       const stationIds = [...new Set(paramLinks.map((l) => l.id_station))];
 
-      const stationRows = stationIds.length > 0
-        ? await sql<Array<{ id: number; name: string }>>`
+      const stationRows =
+        stationIds.length > 0
+          ? await sql<Array<{ id: number; name: string }>>`
             SELECT id, name FROM stations WHERE id = ANY(${stationIds})
           `
-        : [];
+          : [];
 
       const stationById = new Map(
         stationRows.map((s: { id: number; name: string }) => [s.id, s]),

@@ -15,22 +15,43 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { name, message, severity, operator, value, status, parameters } = body;
+    const { name, message, severity, operator, value, status, parameters } =
+      body;
 
-    if (!name || !message || !severity || !operator || !value || !Array.isArray(parameters) || parameters.length === 0)
-      return NextResponse.json({ error: "Campos obrigatórios não fornecidos." }, { status: 400 });
+    if (
+      !name ||
+      !message ||
+      !severity ||
+      !operator ||
+      !value ||
+      !Array.isArray(parameters) ||
+      parameters.length === 0
+    )
+      return NextResponse.json(
+        { error: "Campos obrigatórios não fornecidos." },
+        { status: 400 },
+      );
 
     if (!VALID_SEVERITIES.includes(severity))
-      return NextResponse.json({ error: `severity inválida.` }, { status: 400 });
+      return NextResponse.json(
+        { error: `severity inválida.` },
+        { status: 400 },
+      );
 
     if (!VALID_OPERATORS.includes(operator))
-      return NextResponse.json({ error: `operator inválido.` }, { status: 400 });
+      return NextResponse.json(
+        { error: `operator inválido.` },
+        { status: 400 },
+      );
 
     const paramTypes = await sql`
       SELECT DISTINCT id_parameter_type FROM parameters WHERE id = ANY(${parameters})
     `;
     if (paramTypes.length > 1)
-      return NextResponse.json({ error: "Todos os parâmetros devem ser do mesmo tipo." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Todos os parâmetros devem ser do mesmo tipo." },
+        { status: 400 },
+      );
 
     const [alert] = await sql`
       INSERT INTO alerts (name, message, severity, operator, value, status)
@@ -45,7 +66,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(alert as Alert, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor." },
+      { status: 500 },
+    );
   }
 }
 
@@ -57,21 +81,28 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
-    const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 10), 1), 50);
+    const limit = Math.min(
+      Math.max(Number(url.searchParams.get("limit") ?? 10), 1),
+      50,
+    );
     const search = url.searchParams.get("search")?.trim() || "";
     const parameterType = Number(url.searchParams.get("parameterType") ?? 0);
     const severity = url.searchParams.get("severity")?.trim() || "";
     const offset = (page - 1) * limit;
 
-    const searchFilter = search ? sql`AND a.name ILIKE ${"%" + search + "%"}` : sql``;
+    const searchFilter = search
+      ? sql`AND a.name ILIKE ${"%" + search + "%"}`
+      : sql``;
     const severityFilter = severity ? sql`AND a.severity = ${severity}` : sql``;
-    const paramTypeFilter = parameterType ? sql`
+    const paramTypeFilter = parameterType
+      ? sql`
       AND a.id IN (
         SELECT ap.id_alert FROM alert_parameters ap
         INNER JOIN parameters p ON p.id = ap.id_parameter
         WHERE p.id_parameter_type = ${parameterType}
       )
-    ` : sql``;
+    `
+      : sql``;
 
     const data = await sql`
       SELECT
@@ -103,10 +134,18 @@ export async function GET(req: NextRequest) {
       WHERE 1=1 ${searchFilter} ${severityFilter} ${paramTypeFilter}
     `;
 
-    return NextResponse.json({
-      data,
-      pagination: { page, limit, total: count, totalPages: Math.ceil((count || 0) / limit) },
-    }, { status: 200 });
+    return NextResponse.json(
+      {
+        data,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil((count || 0) / limit),
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Erro no GET alerts:", error);
     return NextResponse.json({ error: "Erro interno." }, { status: 500 });
@@ -122,18 +161,25 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, name, message, severity, operator, value, status, parameters } = body;
+    const { id, name, message, severity, operator, value, status, parameters } =
+      body;
 
     if (!id)
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
     if (!Array.isArray(parameters) || parameters.length === 0)
-      return NextResponse.json({ error: "Pelo menos um parâmetro é obrigatório." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Pelo menos um parâmetro é obrigatório." },
+        { status: 400 },
+      );
 
     const paramTypes = await sql`
       SELECT DISTINCT id_parameter_type FROM parameters WHERE id = ANY(${parameters})
     `;
     if (paramTypes.length > 1)
-      return NextResponse.json({ error: "Todos os parâmetros devem ser do mesmo tipo." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Todos os parâmetros devem ser do mesmo tipo." },
+        { status: 400 },
+      );
 
     const [updated] = await sql`
       UPDATE alerts SET name=${name}, message=${message}, severity=${severity},
@@ -149,7 +195,10 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json(updated as Alert, { status: 200 });
   } catch {
-    return NextResponse.json({ error: "Erro interno ao atualizar." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno ao atualizar." },
+      { status: 500 },
+    );
   }
 }
 
@@ -157,14 +206,20 @@ export async function PATCH(req: NextRequest) {
   const { id, status } = await req.json();
 
   if (!id || status === undefined)
-    return NextResponse.json({ error: "id e status são obrigatórios." }, { status: 400 });
+    return NextResponse.json(
+      { error: "id e status são obrigatórios." },
+      { status: 400 },
+    );
 
   const [data] = await sql`
     UPDATE alerts SET status = ${status} WHERE id = ${id} RETURNING *
   `;
 
   if (!data)
-    return NextResponse.json({ error: "Erro ao atualizar status." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro ao atualizar status." },
+      { status: 500 },
+    );
 
   return NextResponse.json(data, { status: 200 });
 }
@@ -184,8 +239,14 @@ export async function DELETE(req: NextRequest) {
     await sql`DELETE FROM alert_parameters WHERE id_alert = ${id}`;
     await sql`DELETE FROM alerts WHERE id = ${id}`;
 
-    return NextResponse.json({ message: "Alerta deletado com sucesso" }, { status: 200 });
+    return NextResponse.json(
+      { message: "Alerta deletado com sucesso" },
+      { status: 200 },
+    );
   } catch {
-    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor." },
+      { status: 500 },
+    );
   }
 }

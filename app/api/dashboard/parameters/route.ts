@@ -57,7 +57,6 @@ export async function GET(req: NextRequest) {
     : null;
   const minutes = PERIOD_MINUTES[period] ?? 30;
 
-
   const now = new Date();
   const since = new Date(now.getTime() - minutes * 60_000).toISOString();
   const until = now.toISOString();
@@ -109,7 +108,9 @@ export async function GET(req: NextRequest) {
     for (const m of measurements) {
       const param = parameters.find((p) => p.id === m.id_parameter);
       if (!param) continue;
-      const realValue = Number(m.value) * Number(param.factor_value) + Number(param.offset_value);
+      const realValue =
+        Number(m.value) * Number(param.factor_value) +
+        Number(param.offset_value);
       if (!byType[param.name])
         byType[param.name] = { symbol: param.symbol, readings: [] };
       byType[param.name].readings.push({
@@ -127,7 +128,8 @@ export async function GET(req: NextRequest) {
         const value =
           readings.length === 0
             ? 0
-            : readings.reduce((acc, r) => acc + Number(r.value), 0) / readings.length;
+            : readings.reduce((acc, r) => acc + Number(r.value), 0) /
+              readings.length;
         const slots: number[][] = Array.from(
           { length: BARS_PER_PERIOD[period] },
           () => [],

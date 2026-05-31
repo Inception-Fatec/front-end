@@ -6,7 +6,10 @@ import sql from "@/lib/db-postgres";
 jest.mock("@/lib/db-postgres");
 jest.mock("next/server", () => ({
   NextResponse: {
-    json: jest.fn((body, init) => ({ status: init?.status || 200, json: async () => body })),
+    json: jest.fn((body, init) => ({
+      status: init?.status || 200,
+      json: async () => body,
+    })),
   },
 }));
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
@@ -18,7 +21,10 @@ function req(body: unknown) {
 }
 
 describe("Post /api/stations", () => {
-  beforeEach(() => { mockSql.mockReset(); jest.clearAllMocks(); });
+  beforeEach(() => {
+    mockSql.mockReset();
+    jest.clearAllMocks();
+  });
 
   it("401 nao autenticado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce(null);
@@ -50,14 +56,26 @@ describe("Post /api/stations", () => {
     mockSql.mockResolvedValueOnce([]);
     mockSql.mockResolvedValueOnce([]);
     mockSql.mockResolvedValueOnce([{ id: 1 }]);
-    mockSql.mockResolvedValueOnce([{ id: 1, name: "S1", id_datalogger: "dl001", created_at: "2024-01-01", station_groupings: null, parameters: null }]);
+    mockSql.mockResolvedValueOnce([
+      {
+        id: 1,
+        name: "S1",
+        id_datalogger: "dl001",
+        created_at: "2024-01-01",
+        station_groupings: null,
+        parameters: null,
+      },
+    ]);
     const res = await POST(req({ name: "S1", id_datalogger: "dl001" }));
     expect(res.status).toBe(201);
   });
 });
 
 describe("DELETE /api/stations", () => {
-  beforeEach(() => { mockSql.mockReset(); jest.clearAllMocks(); });
+  beforeEach(() => {
+    mockSql.mockReset();
+    jest.clearAllMocks();
+  });
 
   it("401 nao autenticado", async () => {
     (auth as jest.Mock).mockResolvedValueOnce(null);

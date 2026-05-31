@@ -14,19 +14,28 @@ export async function POST(req: NextRequest) {
     const { name, stations } = body;
 
     if (!name)
-      return NextResponse.json({ error: "name é obrigatório." }, { status: 400 });
+      return NextResponse.json(
+        { error: "name é obrigatório." },
+        { status: 400 },
+      );
 
-    const existing = await sql`SELECT id FROM groupings WHERE name = ${name} LIMIT 1`;
+    const existing =
+      await sql`SELECT id FROM groupings WHERE name = ${name} LIMIT 1`;
     if (existing.length > 0)
       return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
 
     if (Array.isArray(stations) && stations.length > 0) {
-      const valid = await sql`SELECT id FROM stations WHERE id = ANY(${stations})`;
+      const valid =
+        await sql`SELECT id FROM stations WHERE id = ANY(${stations})`;
       if (valid.length !== stations.length)
-        return NextResponse.json({ error: "Uma ou mais estações informadas não existem." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Uma ou mais estações informadas não existem." },
+          { status: 400 },
+        );
     }
 
-    const [group] = await sql`INSERT INTO groupings (name) VALUES (${name}) RETURNING id`;
+    const [group] =
+      await sql`INSERT INTO groupings (name) VALUES (${name}) RETURNING id`;
 
     if (Array.isArray(stations) && stations.length > 0) {
       await sql`
@@ -45,7 +54,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno do servidor." },
+      { status: 500 },
+    );
   }
 }
 
@@ -75,7 +87,10 @@ export async function GET(req: NextRequest) {
       `;
 
       if (!group)
-        return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
+        return NextResponse.json(
+          { error: "Grupo não encontrado." },
+          { status: 404 },
+        );
 
       return NextResponse.json(group, { status: 200 });
     }
@@ -98,7 +113,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(groups, { status: 200 });
   } catch (error) {
     console.error("Erro no GET groupings:", error);
-    return NextResponse.json({ error: "Erro interno ao buscar grupos." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno ao buscar grupos." },
+      { status: 500 },
+    );
   }
 }
 
@@ -117,7 +135,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
     if (name) {
-      const existing = await sql`SELECT id FROM groupings WHERE name = ${name} AND id != ${id} LIMIT 1`;
+      const existing =
+        await sql`SELECT id FROM groupings WHERE name = ${name} AND id != ${id} LIMIT 1`;
       if (existing.length > 0)
         return NextResponse.json({ error: "Nome já em uso." }, { status: 409 });
 
@@ -126,9 +145,13 @@ export async function PUT(req: NextRequest) {
 
     if (stations !== undefined) {
       if (Array.isArray(stations) && stations.length > 0) {
-        const valid = await sql`SELECT id FROM stations WHERE id = ANY(${stations})`;
+        const valid =
+          await sql`SELECT id FROM stations WHERE id = ANY(${stations})`;
         if (valid.length !== stations.length)
-          return NextResponse.json({ error: "Uma ou mais estações informadas não existem." }, { status: 400 });
+          return NextResponse.json(
+            { error: "Uma ou mais estações informadas não existem." },
+            { status: 400 },
+          );
       }
 
       await sql`DELETE FROM station_groupings WHERE id_grouping = ${id}`;
@@ -159,7 +182,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(updated, { status: 200 });
   } catch (error) {
     console.error("Erro no PUT groupings:", error);
-    return NextResponse.json({ error: "Erro interno ao atualizar." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno ao atualizar." },
+      { status: 500 },
+    );
   }
 }
 
@@ -175,16 +201,26 @@ export async function DELETE(req: NextRequest) {
     if (!id)
       return NextResponse.json({ error: "id é obrigatório." }, { status: 400 });
 
-    const existing = await sql`SELECT id FROM groupings WHERE id = ${id} LIMIT 1`;
+    const existing =
+      await sql`SELECT id FROM groupings WHERE id = ${id} LIMIT 1`;
     if (existing.length === 0)
-      return NextResponse.json({ error: "Grupo não encontrado." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Grupo não encontrado." },
+        { status: 404 },
+      );
 
     await sql`DELETE FROM station_groupings WHERE id_grouping = ${id}`;
     await sql`DELETE FROM groupings WHERE id = ${id}`;
 
-    return NextResponse.json({ message: "Grupo excluído com sucesso." }, { status: 200 });
+    return NextResponse.json(
+      { message: "Grupo excluído com sucesso." },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Erro no DELETE groupings:", error);
-    return NextResponse.json({ error: "Erro interno ao excluir grupo." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno ao excluir grupo." },
+      { status: 500 },
+    );
   }
 }

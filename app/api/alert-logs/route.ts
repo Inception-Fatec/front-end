@@ -11,18 +11,32 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const all = searchParams.get("all") === "true";
-    const limit = Math.min(Math.max(Number(searchParams.get("limit") || 5), 1), 50);
+    const limit = Math.min(
+      Math.max(Number(searchParams.get("limit") || 5), 1),
+      50,
+    );
     const search = searchParams.get("search") || "";
     const parameterType = Number(searchParams.get("parameterType") || 0);
     const severity = searchParams.get("severity") || "";
     const station = searchParams.get("station") || "";
     const offset = (page - 1) * limit;
 
-    const searchFilter = search ? sql`AND s.name ILIKE ${"%" + search + "%"}` : sql``;
-    const paramTypeFilter = parameterType ? sql`AND p.id_parameter_type = ${parameterType}` : sql``;
-    const severityFilter = severity ? sql`AND al.severity = ${severity}` : sql``;
-    const stationFilter = station && station !== "0" ? sql`AND al.id_station = ${Number(station)}` : sql``;
-    const userFilter = all ? sql`` : sql`
+    const searchFilter = search
+      ? sql`AND s.name ILIKE ${"%" + search + "%"}`
+      : sql``;
+    const paramTypeFilter = parameterType
+      ? sql`AND p.id_parameter_type = ${parameterType}`
+      : sql``;
+    const severityFilter = severity
+      ? sql`AND al.severity = ${severity}`
+      : sql``;
+    const stationFilter =
+      station && station !== "0"
+        ? sql`AND al.id_station = ${Number(station)}`
+        : sql``;
+    const userFilter = all
+      ? sql``
+      : sql`
       INNER JOIN user_alerts ua ON ua.id_alert_log = al.id
       AND ua.id_user = ${session.user.id} AND ua.seen = false
     `;
@@ -54,15 +68,18 @@ export async function GET(req: NextRequest) {
       WHERE 1=1 ${searchFilter} ${paramTypeFilter} ${severityFilter} ${stationFilter}
     `;
 
-    return NextResponse.json({
-      data,
-      pagination: {
-        page,
-        limit,
-        total: count ?? 0,
-        totalPages: Math.ceil((count || 0) / limit),
+    return NextResponse.json(
+      {
+        data,
+        pagination: {
+          page,
+          limit,
+          total: count ?? 0,
+          totalPages: Math.ceil((count || 0) / limit),
+        },
       },
-    }, { status: 200 });
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Erro no GET alert-logs:", error);
     return NextResponse.json({ error: "Erro interno." }, { status: 500 });
@@ -92,6 +109,9 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Erro no PATCH user_alerts:", error);
-    return NextResponse.json({ error: "Erro interno ao atualizar." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro interno ao atualizar." },
+      { status: 500 },
+    );
   }
 }
