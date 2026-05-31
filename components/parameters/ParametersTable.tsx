@@ -65,9 +65,7 @@ export function ParametersTable({
         activeCount: nextActiveCount,
         uniqueActiveCount: nextUniqueActiveCount,
       });
-    } catch {
-      // Keep current values when the refresh request fails.
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -148,7 +146,10 @@ export function ParametersTable({
           </button>
         </div>
 
-        <div className="rounded-xl border border-border bg-card-background px-5 py-4 max-w-3xl">
+        <div
+          data-tour-id="tour-parameters-summary"
+          className="rounded-xl border border-border bg-card-background px-5 py-4 max-w-3xl"
+        >
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.18em] text-secondary-text">
