@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { GET as getUsers, POST as postUser } from "@/app/api/users/route";
 import { GET as getUserById, PUT as putUser } from "@/app/api/users/[id]/route";
 import { auth } from "@/auth";
@@ -14,7 +15,9 @@ jest.mock("next/server", () => ({
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
 jest.mock("bcryptjs", () => ({ hash: jest.fn() }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockSql = (sql as any).__mockSql as jest.Mock;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (sql as any).unsafe = jest.fn();
 
 function req(body?: unknown, url = "http://localhost/api/users") {

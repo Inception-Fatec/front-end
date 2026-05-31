@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockSql = jest.fn();
 
 // Make sql work as tagged template AND as a fragment builder
