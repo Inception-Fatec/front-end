@@ -19,7 +19,7 @@ const mockSql = sql as jest.Mock;
 // Retorna um fake TemplateStringsArray para que o mock consiga detectar tagged templates
 function isFragment(firstArg: unknown): boolean {
   if (!Array.isArray(firstArg)) return false;
-  if (!("raw" in (firstArg as any))) return false;
+  if (!("raw" in (firstArg as object))) return false;
   const firstString = (firstArg as string[])[0] ?? "";
   // Fragmentos: não começam com palavra-chave SQL real
   return !/^\s*(SELECT|INSERT|UPDATE|DELETE|WITH)\b/i.test(firstString);
@@ -93,31 +93,56 @@ describe("POST /api/stations", () => {
   it("400 grouping invalido", async () => {
     setupSqlMock([[], [], [{ id: 1 }]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
-    const res = await POST(req({ name: "Nova", id_datalogger: "dl001", groupings: [1, 2] }));
+    const res = await POST(
+      req({ name: "Nova", id_datalogger: "dl001", groupings: [1, 2] }),
+    );
     expect(res.status).toBe(400);
   });
 
   it("201 criado com parameters e groupings", async () => {
     setupSqlMock([
-      [],                          // SELECT nome livre
-      [],                          // SELECT datalogger livre
-      [{ id: 1 }, { id: 2 }],      // SELECT groupings válidos
-      [{ id: 10 }],                // INSERT station
-      [],                          // INSERT parameters
-      [],                          // INSERT station_groupings
-      [{ id: 10, name: "Nova", id_datalogger: "dl001", station_groupings: [], parameters: [] }],
+      [], // SELECT nome livre
+      [], // SELECT datalogger livre
+      [{ id: 1 }, { id: 2 }], // SELECT groupings válidos
+      [{ id: 10 }], // INSERT station
+      [], // INSERT parameters
+      [], // INSERT station_groupings
+      [
+        {
+          id: 10,
+          name: "Nova",
+          id_datalogger: "dl001",
+          station_groupings: [],
+          parameters: [],
+        },
+      ],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
-    const res = await POST(req({ name: "Nova", id_datalogger: "dl001", parameters: [1, 2], groupings: [1, 2] }));
+    const res = await POST(
+      req({
+        name: "Nova",
+        id_datalogger: "dl001",
+        parameters: [1, 2],
+        groupings: [1, 2],
+      }),
+    );
     expect(res.status).toBe(201);
   });
 
   it("201 criado sem parameters e groupings", async () => {
     setupSqlMock([
-      [],         // nome livre
-      [],         // datalogger livre
+      [], // nome livre
+      [], // datalogger livre
       [{ id: 1 }], // INSERT station
-      [{ id: 1, name: "S1", id_datalogger: "dl001", station_groupings: null, parameters: null }],
+      [
+        {
+          id: 1,
+          name: "S1",
+          id_datalogger: "dl001",
+          station_groupings: null,
+          parameters: null,
+        },
+      ],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await POST(req({ name: "S1", id_datalogger: "dl001" }));
@@ -137,7 +162,7 @@ describe("POST /api/stations", () => {
 describe("GET /api/stations", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "error").mockImplementation(() => { });
+    jest.spyOn(console, "error").mockImplementation(() => {});
   });
   it("401 nao autenticado", async () => {
     setupSqlMock([]);
@@ -155,7 +180,14 @@ describe("GET /api/stations", () => {
 
   it("200 retorna estacao por id com medicoes", async () => {
     setupSqlMock([
-      [{ id: 1, name: "S1", parameters: [{ id: 10 }, { id: 11 }], station_groupings: null }],
+      [
+        {
+          id: 1,
+          name: "S1",
+          parameters: [{ id: 10 }, { id: 11 }],
+          station_groupings: null,
+        },
+      ],
       [{ id: 1, value: 5.5, date_time: "2024-01-01" }], // medições param 10
       [{ id: 2, value: 3.1, date_time: "2024-01-02" }], // medições param 11
     ]);
@@ -165,7 +197,9 @@ describe("GET /api/stations", () => {
   });
 
   it("200 retorna estacao por id sem parametros", async () => {
-    setupSqlMock([[{ id: 2, name: "S2", parameters: null, station_groupings: null }]]);
+    setupSqlMock([
+      [{ id: 2, name: "S2", parameters: null, station_groupings: null }],
+    ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq({ id: "2" }));
     expect(res.status).toBe(200);
@@ -205,7 +239,10 @@ describe("GET /api/stations", () => {
   it("200 filtro por grouping com resultados", async () => {
     setupSqlMock([
       [{ id_station: 1 }, { id_station: 2 }], // station_groupings
-      [{ id: 1, name: "S1" }, { id: 2, name: "S2" }],
+      [
+        { id: 1, name: "S1" },
+        { id: 2, name: "S2" },
+      ],
       [{ count: 2 }],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
@@ -292,34 +329,53 @@ describe("PUT /api/stations", () => {
   it("409 admin nome em uso", async () => {
     setupSqlMock([[{ id: 99 }]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
-    const res = await PUT(req({ id: 1, name: "Duplicado", id_datalogger: "dl", status: true }));
+    const res = await PUT(
+      req({ id: 1, name: "Duplicado", id_datalogger: "dl", status: true }),
+    );
     expect(res.status).toBe(409);
   });
 
   it("200 admin atualiza com parameters e groupings", async () => {
     setupSqlMock([
-      [],   // SELECT nome livre
-      [],   // UPDATE station
-      [],   // DELETE parameters
-      [],   // INSERT parameters
-      [],   // DELETE groupings
-      [],   // INSERT groupings
+      [], // SELECT nome livre
+      [], // UPDATE station
+      [], // DELETE parameters
+      [], // INSERT parameters
+      [], // DELETE groupings
+      [], // INSERT groupings
       [{ id: 1, name: "S1", station_groupings: [], parameters: [] }],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
-    const res = await PUT(req({ id: 1, name: "S1", id_datalogger: "dl", status: true, parameters: [1, 2], groupings: [1] }));
+    const res = await PUT(
+      req({
+        id: 1,
+        name: "S1",
+        id_datalogger: "dl",
+        status: true,
+        parameters: [1, 2],
+        groupings: [1],
+      }),
+    );
     expect(res.status).toBe(200);
   });
 
   it("200 admin atualiza com groupings vazios", async () => {
     setupSqlMock([
-      [],   // SELECT nome livre
-      [],   // UPDATE station
-      [],   // DELETE groupings
+      [], // SELECT nome livre
+      [], // UPDATE station
+      [], // DELETE groupings
       [{ id: 1, name: "S1", parameters: null, station_groupings: null }],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
-    const res = await PUT(req({ id: 1, name: "S1", id_datalogger: "dl", status: true, groupings: [] }));
+    const res = await PUT(
+      req({
+        id: 1,
+        name: "S1",
+        id_datalogger: "dl",
+        status: true,
+        groupings: [],
+      }),
+    );
     expect(res.status).toBe(200);
   });
 
