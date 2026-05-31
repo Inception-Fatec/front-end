@@ -280,18 +280,16 @@ describe("PUT /api/users/[id]", () => {
       user: { id: "1", role: "ADMIN" },
     });
     (bcrypt.hash as jest.Mock).mockResolvedValueOnce("new_hash");
-    (sql as any).unsafe = jest
-      .fn()
-      .mockResolvedValueOnce([
-        {
-          id: 1,
-          name: "Updated",
-          email: "j@j.com",
-          role: "USER",
-          status: true,
-          created_at: "2024-01-01",
-        },
-      ]);
+    (sql as any).unsafe = jest.fn().mockResolvedValueOnce([
+      {
+        id: 1,
+        name: "Updated",
+        email: "j@j.com",
+        role: "USER",
+        status: true,
+        created_at: "2024-01-01",
+      },
+    ]);
     const res = await putUser(
       req({ name: "Updated", password: "newpass123" }),
       { params: Promise.resolve({ id: "1" }) },
