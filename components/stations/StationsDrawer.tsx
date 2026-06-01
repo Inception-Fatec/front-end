@@ -129,7 +129,10 @@ export function StationDrawer({
       />
 
       {/* Drawer */}
-      <aside className="fixed right-0 top-0 h-screen w-full max-w-sm z-50 bg-background border-l border-border flex flex-col shadow-2xl">
+      <aside
+        data-tour-id="tour-station-drawer"
+        className="fixed right-0 top-0 h-screen w-full max-w-sm z-50 bg-background border-l border-border flex flex-col shadow-2xl"
+      >
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
           {loading || !station ? (
@@ -212,12 +215,38 @@ export function StationDrawer({
                       Coordenadas
                     </p>
                     <p className="text-xs text-foreground font-mono">
-                      {station.latitude.toFixed(4)}° /{" "}
-                      {station.longitude.toFixed(4)}°
+                      {station.latitude != null
+                        ? Number(station.latitude).toFixed(4)
+                        : "—"}
+                      ° /{" "}
+                      {station.longitude != null
+                        ? Number(station.longitude).toFixed(4)
+                        : "—"}
+                      °
                     </p>
                   </div>
                 )}
               </div>
+
+              {/* Grupos */}
+              {station.station_groupings &&
+                station.station_groupings.length > 0 && (
+                  <div className="col-span-2 space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-secondary-text font-medium">
+                      Grupos
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {station.station_groupings.map((sg) => (
+                        <span
+                          key={sg.id_grouping}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-xs text-primary font-medium"
+                        >
+                          {sg.groupings?.name ?? "—"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
               {/* Sensores */}
               {station.parameters.length > 0 && (

@@ -20,20 +20,17 @@ import { getAlertLogs } from "@/services/alert-logs";
 import { getStations } from "@/services/stations";
 import { AlertLogWithDetails, PaginatedAlertLogs } from "@/types/alert";
 import { PaginatedStations } from "@/types/station";
-import { supabase } from "@/lib/supabaseClient";
-
-const POLL_INTERVAL_MS = 60_000;
 
 interface DashboardContextValue {
   stats: DashboardStats | null;
   stations: PaginatedStations;
   alerts: AlertLogWithDetails[];
   notifications: PaginatedAlertLogs;
+  notificationAlert: AlertLogWithDetails[];
   groups: GroupingWithStationDetails[];
   params: ParameterSummary[];
   isLoading: boolean;
   error: string | null;
-  refresh: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -56,7 +53,6 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   const isFirstLoad = useRef(true);
   const isMounted = useRef(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAll = useCallback(async () => {
     if (isFirstLoad.current) setIsLoading(true);
@@ -91,8 +87,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    Promise.all([getParameterSummaries()])
-      .then(([p]) => {
+    getParameterSummaries()
+      .then((p) => {
         if (!isMounted.current) return;
         setParams(p);
       })
@@ -101,35 +97,38 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  const refresh = useCallback(() => {
-    fetchAll();
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(fetchAll, POLL_INTERVAL_MS);
-  }, [fetchAll]);
-
   useEffect(() => {
     isMounted.current = true;
-
-    const initialize = async () => {
-      await fetchAll();
-    };
-
-    void initialize();
-    intervalRef.current = setInterval(() => void fetchAll(), POLL_INTERVAL_MS);
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchAll();
     return () => {
       isMounted.current = false;
-      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchAll]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("dashboard-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "alert_logs" },
-        async () => {
+    let es: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      es = new EventSource("/api/events");
+
+      es.onmessage = async (event) => {
+        if (!isMounted.current) return;
+
+        let parsed: {
+          channel: string;
+          payload: Record<string, unknown> | null;
+        };
+        try {
+          parsed = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        const { channel, payload } = parsed;
+
+        if (channel === "alert_logs_channel") {
           const [al, n] = await Promise.all([
             getAlertLogs({ page: 1, limit: 4, all: true }),
             getAlertLogs({ page: 1, limit: 50, all: false }),
@@ -138,48 +137,68 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
             setAlerts(al.data);
             setNotifications(n);
           }
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "stations" },
-        async (payload) => {
-          console.log("stations realtime:", payload);
+        }
 
-          const [st, s] = await Promise.all([
-            getStations({ page: 1, limit: 4, search: "" }),
-            getDashboardStats(),
-          ]);
-
+        if (channel === "stations_channel") {
+          const st = await getStations({ page: 1, limit: 4, search: "" });
           if (!isMounted.current) return;
-
           setStations(st);
-          setStats(s);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "measurements" },
-        async (payload) => {
-          console.log("measurements realtime:", payload);
 
-          const s = await getDashboardStats();
+          if (payload) {
+            setStats((prev) => {
+              if (!prev) return prev;
+              let { totalStations, activeStations } = prev;
 
-          if (isMounted.current) setStats(s);
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groupings" },
-        async () => {
-          const s = await getDashboardStats();
-          if (isMounted.current) setStats(s);
-        },
-      )
-      .subscribe();
+              if (payload.eventType === "INSERT") {
+                totalStations += 1;
+                if (payload.status === true) activeStations += 1;
+              }
+              if (payload.eventType === "DELETE") {
+                totalStations -= 1;
+                if (payload.old_status === true) activeStations -= 1;
+              }
+              if (payload.eventType === "UPDATE") {
+                if (payload.old_status === true && payload.status === false)
+                  activeStations -= 1;
+                if (payload.old_status === false && payload.status === true)
+                  activeStations += 1;
+              }
+
+              return { ...prev, totalStations, activeStations };
+            });
+          }
+        }
+
+        if (channel === "measurements_channel" && payload) {
+          setStats((prev) => {
+            if (!prev) return prev;
+            return { ...prev, lastUpdate: new Date().toISOString() };
+          });
+        }
+
+        if (channel === "groupings_channel" && payload) {
+          setStats((prev) => {
+            if (!prev) return prev;
+            let { totalGroups } = prev;
+            if (payload.eventType === "INSERT") totalGroups += 1;
+            if (payload.eventType === "DELETE") totalGroups -= 1;
+            return { ...prev, totalGroups };
+          });
+        }
+      };
+
+      es.onerror = () => {
+        es?.close();
+        // Reconecta após 5s em caso de erro
+        reconnectTimeout = setTimeout(connect, 5_000);
+      };
+    }
+
+    connect();
 
     return () => {
-      supabase.removeChannel(channel);
+      es?.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);
 
@@ -190,11 +209,11 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         stations,
         alerts,
         notifications,
+        notificationAlert: notifications.data,
         groups,
         params,
         isLoading,
         error,
-        refresh,
       }}
     >
       {children}

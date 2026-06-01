@@ -28,6 +28,11 @@ export function CreateStationModal({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingParams, setLoadingParams] = useState(true);
+  const [groupings, setGroupings] = useState<{ id: number; name: string }[]>(
+    [],
+  );
+  const [selectedGroupings, setSelectedGroupings] = useState<number[]>([]);
+  const [loadingGroupings, setLoadingGroupings] = useState(true);
 
   useEffect(() => {
     async function fetchParameterTypes() {
@@ -48,6 +53,28 @@ export function CreateStationModal({
   function toggleParameter(id: number) {
     setSelectedParameters((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  }
+
+  useEffect(() => {
+    async function fetchGroupings() {
+      try {
+        const res = await fetch("/api/groupings");
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        setGroupings(json ?? []);
+      } catch {
+        setGroupings([]);
+      } finally {
+        setLoadingGroupings(false);
+      }
+    }
+    fetchGroupings();
+  }, []);
+
+  function toggleGrouping(id: number) {
+    setSelectedGroupings((prev) =>
+      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
     );
   }
 
@@ -74,6 +101,7 @@ export function CreateStationModal({
         longitude: longitude ? Number(longitude) : null,
         parameters:
           selectedParameters.length > 0 ? selectedParameters : undefined,
+        groupings: selectedGroupings.length > 0 ? selectedGroupings : undefined,
         status: stationStatus,
       });
       onSuccess();
@@ -229,6 +257,72 @@ export function CreateStationModal({
                       </span>
                       <ParameterIcon name={pt.name} size={13} />
                       <span className="truncate">{pt.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Grupos */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-secondary-text">
+              Grupos
+            </label>
+            {loadingGroupings ? (
+              <div className="grid grid-cols-2 gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-8 rounded-lg bg-border animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : groupings.length === 0 ? (
+              <p className="text-xs text-secondary-text">
+                Nenhum grupo cadastrado.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {groupings.map((g) => {
+                  const checked = selectedGroupings.includes(g.id);
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={() => toggleGrouping(g.id)}
+                      className={[
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-colors text-left",
+                        checked
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border bg-background text-secondary-text hover:border-border/80 hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={[
+                          "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors",
+                          checked
+                            ? "bg-primary border-primary"
+                            : "border-border",
+                        ].join(" ")}
+                      >
+                        {checked && (
+                          <svg
+                            width="8"
+                            height="8"
+                            viewBox="0 0 8 8"
+                            fill="none"
+                          >
+                            <path
+                              d="M1 4l2 2 4-4"
+                              stroke="white"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="truncate">{g.name}</span>
                     </button>
                   );
                 })}

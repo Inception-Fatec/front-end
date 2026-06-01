@@ -24,13 +24,20 @@ export function AnalyticsChart({ chartData, isLoading }: AnalyticsChartProps) {
           .includes("pressão");
 
         const data: SeriesPoint[] = param.measurements
-          .map((m): SeriesPoint => {
-            const ts = new Date(m.date_time + "Z").getTime();
+          .map((m): SeriesPoint | null => {
+            const ts = new Date(
+              m.date_time.includes("Z") || m.date_time.includes("+")
+                ? m.date_time
+                : m.date_time + "Z",
+            ).getTime();
+            const val = Number(m.value);
+            if (isNaN(ts) || isNaN(val)) return null;
             if (isPressure) {
-              return { x: ts, y: m.value / 1000, realValue: m.value };
+              return { x: ts, y: val / 1000, realValue: val };
             }
-            return [ts, m.value];
+            return [ts, val];
           })
+          .filter((p): p is SeriesPoint => p !== null)
           .sort((a, b) => {
             const aTs = Array.isArray(a) ? a[0] : a.x;
             const bTs = Array.isArray(b) ? b[0] : b.x;
@@ -98,7 +105,7 @@ export function AnalyticsChart({ chartData, isLoading }: AnalyticsChartProps) {
     },
     plotOptions: {
       series: {
-        dataGrouping: { enabled: true },
+        dataGrouping: { enabled: false },
         marker: { enabled: false },
         showInLegend: true,
       },

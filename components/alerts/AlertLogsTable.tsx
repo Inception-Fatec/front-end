@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SeverityBadge } from "./SeverityBadge";
 import type { PaginatedAlertLogs } from "@/types/alert";
 import type { ParameterType } from "@/types/parameter";
@@ -11,6 +10,7 @@ import { getStations } from "@/services/stations";
 import { StationWithParameters } from "@/types/station";
 import { AlertLogFilters } from "./AlertLogFilters";
 import { ParameterIcon } from "./ParameterIcon";
+import { Pagination } from "@/components/Pagination";
 
 export function AlertLogsTable() {
   const [search, setSearch] = useState("");
@@ -116,9 +116,13 @@ export function AlertLogsTable() {
 
   function formatDate(iso: string) {
     return (
-      new Date(iso).toLocaleDateString("pt-BR") +
+      new Date(
+        iso.includes("Z") || iso.includes("+") ? iso : iso + "Z",
+      ).toLocaleDateString("pt-BR") +
       " " +
-      new Date(iso).toLocaleTimeString("pt-BR")
+      new Date(
+        iso.includes("Z") || iso.includes("+") ? iso : iso + "Z",
+      ).toLocaleTimeString("pt-BR")
     );
   }
 
@@ -239,39 +243,12 @@ export function AlertLogsTable() {
               ? "Nenhum resultado"
               : `Exibindo ${(page - 1) * limit + 1}–${Math.min(page * limit, total)} de ${total} registros`}
           </p>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => fetchPage(page - 1)}
-                disabled={page === 1 || loading}
-                className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  onClick={() => fetchPage(n)}
-                  disabled={loading}
-                  className={[
-                    "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
-                    n === page
-                      ? "bg-primary text-white"
-                      : "border border-border text-secondary-text hover:bg-background",
-                  ].join(" ")}
-                >
-                  {n}
-                </button>
-              ))}
-              <button
-                onClick={() => fetchPage(page + 1)}
-                disabled={page === totalPages || loading}
-                className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          )}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            loading={loading}
+            onPageChange={fetchPage}
+          />
         </div>
       </div>
     </div>

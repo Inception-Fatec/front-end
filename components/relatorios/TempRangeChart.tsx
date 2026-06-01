@@ -21,11 +21,11 @@ function buildDailyMinMax(
     const day = m.date_time.slice(0, 10);
     const current = dayMap.get(day);
     if (!current) {
-      dayMap.set(day, { min: m.value, max: m.value });
+      dayMap.set(day, { min: Number(m.value), max: Number(m.value) });
     } else {
       dayMap.set(day, {
-        min: Math.min(current.min, m.value),
-        max: Math.max(current.max, m.value),
+        min: Math.min(current.min, Number(m.value)),
+        max: Math.max(current.max, Number(m.value)),
       });
     }
   });

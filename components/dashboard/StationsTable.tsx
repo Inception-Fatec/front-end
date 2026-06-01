@@ -3,19 +3,19 @@
 // components/dashboard/StationsTable.tsx
 
 import { useState, useCallback, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, BarChart2 } from "lucide-react";
+import { Search, BarChart2 } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { Skeleton } from "./Skeleton";
 import type { PaginatedStations } from "@/types/station";
 import { getStations } from "@/services/stations";
 import { useRouter } from "next/navigation";
+import { Pagination } from "@/components/Pagination";
 
 const PAGE_SIZE = 4;
 
 interface StationsTableProps {
   stations: PaginatedStations;
   isLoading: boolean;
-  onRefresh: () => void;
 }
 
 export function StationsTable({ stations, isLoading }: StationsTableProps) {
@@ -49,7 +49,11 @@ export function StationsTable({ stations, isLoading }: StationsTableProps) {
   function timedifference(date_time: string | null) {
     if (!date_time) return "-";
     const agora = new Date().getTime();
-    const data = new Date(date_time).getTime();
+    const data = new Date(
+      date_time.includes("Z") || date_time.includes("+")
+        ? date_time
+        : date_time + "Z",
+    ).getTime();
     const diffMs = agora - data;
     const segundos = Math.floor(diffMs / 1000);
     const minutos = Math.floor(segundos / 60);
@@ -73,7 +77,10 @@ export function StationsTable({ stations, isLoading }: StationsTableProps) {
   }
 
   return (
-    <div className="bg-card-background border border-border rounded-xl overflow-hidden">
+    <div
+      data-tour-id="tour-dashboard-stations-card"
+      className="bg-card-background border border-border rounded-xl overflow-hidden"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border">
         <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
@@ -176,47 +183,18 @@ export function StationsTable({ stations, isLoading }: StationsTableProps) {
             <span className="text-[11px] text-secondary-text">
               {data.pagination.total === 0
                 ? "Nenhum resultado"
-                : `${(data.pagination.page - 1) * PAGE_SIZE + 1}–${Math.min(data.pagination.page * PAGE_SIZE, data.data.length)} de ${data.pagination.total} estações`}
+                : `${(data.pagination.page - 1) * PAGE_SIZE + 1}–${Math.min(data.pagination.page * PAGE_SIZE, data.pagination.total)} de ${data.pagination.total} estações`}
             </span>
           </div>
         )}
 
-        {!isLoading && !loading && data.pagination.totalPages > 1 && (
-          <div className="flex items-center gap-1 ml-auto">
-            <button
-              onClick={() => fetchPage(data.pagination.page - 1)}
-              disabled={data.pagination.page === 1}
-              className="p-1.5 rounded hover:bg-background transition-colors text-secondary-text disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft size={14} />
-            </button>
-
-            {Array.from(
-              { length: data.pagination.totalPages },
-              (_, i) => i + 1,
-            ).map((n) => (
-              <button
-                key={n}
-                onClick={() => fetchPage(n)}
-                className={[
-                  "w-6 h-6 rounded text-xs font-semibold transition-colors",
-                  n === data.pagination.page
-                    ? "bg-primary text-white"
-                    : "hover:bg-background text-secondary-text",
-                ].join(" ")}
-              >
-                {n}
-              </button>
-            ))}
-
-            <button
-              onClick={() => fetchPage(data.pagination.page + 1)}
-              disabled={data.pagination.page === data.pagination.totalPages}
-              className="p-1.5 rounded hover:bg-background transition-colors text-secondary-text disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
+        {!isLoading && !loading && (
+          <Pagination
+            currentPage={data.pagination.page}
+            totalPages={data.pagination.totalPages}
+            loading={loading}
+            onPageChange={fetchPage}
+          />
         )}
       </div>
     </div>

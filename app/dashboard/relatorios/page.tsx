@@ -112,7 +112,7 @@ export default function RelatoriosPage() {
           const ts = new Date(m.date_time).setMilliseconds(0);
           const current = timeMap.get(ts) ?? { total: 0, count: 0 };
           timeMap.set(ts, {
-            total: current.total + m.value,
+            total: current.total + Number(m.value),
             count: current.count + 1,
           });
         });
@@ -145,8 +145,11 @@ export default function RelatoriosPage() {
       const dateParams = new URLSearchParams();
       if (startDate)
         dateParams.append("start_date", new Date(startDate).toISOString());
-      if (endDate)
-        dateParams.append("end_date", new Date(endDate).toISOString());
+      if (endDate) {
+        const endDateObj = new Date(endDate);
+        endDateObj.setDate(endDateObj.getDate() + 1);
+        dateParams.append("end_date", endDateObj.toISOString());
+      }
 
       if (groupId !== null) {
         const groupRes = await fetch(`/api/groupings?id=${groupId}`);

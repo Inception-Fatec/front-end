@@ -1,26 +1,39 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Pencil, Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { SeverityBadge } from "./SeverityBadge";
 import { ParameterIcon } from "./ParameterIcon";
 import { CreateAlertModal } from "./CreateAlertModal";
 import { EditAlertModal } from "./EditAlertModal";
 import { DeleteAlertModal } from "./DeleteAlertModal";
 import { AlertFilters } from "./AlertFilters";
-import type { AlertWithParameters, PaginatedAlerts } from "@/types/alert";
+import {
+  AlertLogWithDetails,
+  type AlertWithParameters,
+  type PaginatedAlerts,
+} from "@/types/alert";
 import type { ParameterType } from "@/types/parameter";
 import type { UserRole } from "@/types/user";
 import { getAlerts, updateAlertStatus } from "@/services/alerts";
 import { getParameters } from "@/services/parameters";
 import { getStations } from "@/services/stations";
 import { StationWithParameters } from "@/types/station";
+import { Pagination } from "@/components/Pagination";
+import { useDashboard } from "@/context/DashboardContext";
 
 interface AlertsTableProps {
   sessionRole: UserRole;
+  onShowToast?: (data: {
+    title: string;
+    station: string;
+    value: string;
+    time: string;
+    severity: "CRITICAL" | "MODERATE" | "MINOR";
+  }) => void;
 }
 
-export function AlertsTable({ sessionRole }: AlertsTableProps) {
+export function AlertsTable({ sessionRole, onShowToast }: AlertsTableProps) {
   const [search, setSearch] = useState("");
   const [limit] = useState(8);
   const [parameterTypeFilter, setParameterTypeFilter] = useState(0);
@@ -42,6 +55,8 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
       total: 0,
     },
   });
+  const { notificationAlert } = useDashboard();
+  const [newAlerts, setNewAlerts] = useState<AlertLogWithDetails[] | null>([]);
 
   const fetchPage = useCallback(
     async (
@@ -115,6 +130,24 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
     fetchParameterTypes();
     fetchStations();
   }, [fetchPage, fetchParameterTypes, fetchStations]);
+  useEffect(() => {
+    setNewAlerts(notificationAlert);
+    newAlerts?.map((alert) => {
+      onShowToast?.({
+        title: alert.name,
+
+        station: alert.stations?.name || "Estação não encontrada",
+
+        value: `${alert.operator} ${alert.value} ${
+          alert.parameters.parameter_types?.symbol || ""
+        }`,
+
+        time: alert.created_at,
+
+        severity: alert.severity,
+      });
+    });
+  }, [notificationAlert]);
 
   function handleSearch(value: string) {
     setSearch(value);
@@ -138,7 +171,6 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
   return (
     <>
       <div className="space-y-4">
-        {/* Header da página */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           {sessionRole !== "USER" && (
             <button
@@ -151,7 +183,6 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
           )}
         </div>
 
-        {/* Filtros */}
         <AlertFilters
           search={search}
           parameterTypeFilter={parameterTypeFilter}
@@ -162,7 +193,6 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
           onParameterTypeFilter={handleParameterTypeFilter}
         />
 
-        {/* Tabela */}
         <div className="bg-card-background border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -217,7 +247,7 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
                     </td>
                   </tr>
                 ) : (
-                  data.data.map((alert) => {
+                  data.data.map((alert, index) => {
                     return (
                       <tr
                         key={alert.id}
@@ -327,52 +357,18 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
             </table>
           </div>
 
-          {/* Footer com paginação */}
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border">
             <p className="text-[11px] text-secondary-text">
               {data.pagination.total === 0
                 ? "Nenhum resultado"
                 : `Exibindo ${(data.pagination.page - 1) * 8 + 1}–${Math.min(data.pagination.page * 8, data.pagination.total)} de ${data.pagination.total} alertas`}
             </p>
-            {data.pagination.totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => fetchPage(data.pagination.page - 1)}
-                  disabled={data.pagination.page === 1 || loading}
-                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from(
-                  { length: data.pagination.totalPages },
-                  (_, i) => i + 1,
-                ).map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => fetchPage(n)}
-                    disabled={loading}
-                    className={[
-                      "w-7 h-7 text-xs rounded-lg font-semibold transition-colors",
-                      n === data.pagination.page
-                        ? "bg-primary text-white"
-                        : "border border-border text-secondary-text hover:bg-background",
-                    ].join(" ")}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  onClick={() => fetchPage(data.pagination.page + 1)}
-                  disabled={
-                    data.pagination.page === data.pagination.totalPages ||
-                    loading
-                  }
-                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-secondary-text hover:bg-background disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={data.pagination.page}
+              totalPages={data.pagination.totalPages}
+              loading={loading}
+              onPageChange={fetchPage}
+            />
           </div>
         </div>
       </div>
@@ -383,6 +379,7 @@ export function AlertsTable({ sessionRole }: AlertsTableProps) {
           stations={stations}
           onClose={() => setCreateOpen(false)}
           onSuccess={() => fetchPage(1)}
+          // onShowToast={onShowToast}
         />
       )}
       {editAlert && (

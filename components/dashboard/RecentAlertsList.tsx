@@ -8,14 +8,18 @@ import { Skeleton } from "./Skeleton";
 import { AlertLogWithDetails } from "@/types/alert";
 
 interface RecentAlertsListProps {
-  alerts: AlertLogWithDetails[];
+  alerts?: AlertLogWithDetails[];
   isLoading: boolean;
 }
 
 function timedifference(date_time: string) {
   if (!date_time) return "-";
   const agora = new Date().getTime();
-  const data = new Date(date_time).getTime();
+  const data = new Date(
+    date_time.includes("Z") || date_time.includes("+")
+      ? date_time
+      : date_time + "Z",
+  ).getTime();
   const diffMs = agora - data;
   const segundos = Math.floor(diffMs / 1000);
   const minutos = Math.floor(segundos / 60);
@@ -38,7 +42,10 @@ function TempoAtual({ date }: { date: string }) {
   return <>{timedifference(date)}</>;
 }
 
-export function RecentAlertsList({ alerts, isLoading }: RecentAlertsListProps) {
+export function RecentAlertsList({
+  alerts = [],
+  isLoading,
+}: RecentAlertsListProps) {
   const router = useRouter();
 
   return (

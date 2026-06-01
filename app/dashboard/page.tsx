@@ -1,7 +1,6 @@
 "use client";
 
 // app/dashboard/page.tsx
-
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -17,7 +16,11 @@ import { ParametersGrid } from "@/components/dashboard/ParametersGrid";
 function timedifference(date_time: string) {
   if (!date_time) return "-";
   const agora = new Date().getTime();
-  const data = new Date(date_time).getTime();
+  const data = new Date(
+    date_time.includes("Z") || date_time.includes("+")
+      ? date_time
+      : date_time + "Z",
+  ).getTime();
   const diffMs = agora - data;
   const segundos = Math.floor(diffMs / 1000);
   const minutos = Math.floor(segundos / 60);
@@ -43,8 +46,7 @@ function TempoAtual({ date }: { date: string }) {
 export default function DashboardPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { stats, stations, alerts, groups, isLoading, error, refresh } =
-    useDashboard();
+  const { stats, stations, alerts, groups, isLoading, error } = useDashboard();
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -97,12 +99,9 @@ export default function DashboardPage() {
       {/* Tabela de estações + Alertas recentes */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2">
-          <StationsTable
-            stations={stations}
-            isLoading={isLoading}
-            onRefresh={refresh}
-          />
+          <StationsTable stations={stations} isLoading={isLoading} />
         </div>
+
         <RecentAlertsList alerts={alerts} isLoading={isLoading} />
       </div>
 

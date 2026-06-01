@@ -13,6 +13,8 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role as UserRole | undefined;
+  const isFirstAccess = req.auth?.user?.first_access as boolean | undefined;
+  const isWelcomeRoute = pathname === "/welcome";
 
   if (!isLoggedIn && pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", req.url));
@@ -20,6 +22,16 @@ export default auth((req) => {
 
   if (isLoggedIn && pathname === "/login") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  if (isLoggedIn) {
+    if (isFirstAccess && !isWelcomeRoute) {
+      return NextResponse.redirect(new URL("/welcome", req.url));
+    }
+
+    if (!isFirstAccess && isWelcomeRoute) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
   }
 
   for (const [route, allowedRoles] of Object.entries(routePermissions)) {
