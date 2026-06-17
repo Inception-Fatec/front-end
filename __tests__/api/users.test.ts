@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { GET as getUsers, POST as postUser } from "@/app/api/users/route";
-import { GET as getUserById, PUT as putUser } from "@/app/api/users/[id]/route";
+import { GET as getUserById, PUT as putUser, DELETE as deleteUser } from "@/app/api/users/[id]/route";
 import { auth } from "@/auth";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
@@ -18,10 +17,11 @@ jest.mock("next/server", () => ({
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
 jest.mock("bcryptjs", () => ({ hash: jest.fn() }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockSql = (sql as any).__mockSql as jest.Mock;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(sql as any).unsafe = jest.fn();
+// CORREÇÃO: Criado tipo explícito ao invés de usar 'any'
+type MockedSql = { unsafe: jest.Mock; __mockSql: jest.Mock };
+
+const mockSql = (sql as unknown as MockedSql).__mockSql;
+(sql as unknown as MockedSql).unsafe = jest.fn();
 
 function req(body?: unknown, url = "http://localhost/api/users") {
   return {
@@ -231,7 +231,7 @@ describe("GET /api/users/[id]", () => {
 describe("PUT /api/users/[id]", () => {
   beforeEach(() => {
     mockSql.mockReset();
-    (sql as any).unsafe = jest.fn();
+    (sql as unknown as MockedSql).unsafe = jest.fn();
     jest.clearAllMocks();
   });
 
@@ -275,12 +275,32 @@ describe("PUT /api/users/[id]", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400 senha muito curta", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: "1", role: "ADMIN" } });
+    const res = await putUser(req({ password: "123" }), { params: Promise.resolve({ id: "2" }) });
+    expect(res.status).toBe(400);
+  });
+
+  it("404 usuario nao encontrado", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: "1", role: "ADMIN" } });
+    (sql as unknown as MockedSql).unsafe = jest.fn().mockResolvedValueOnce([]); 
+    const res = await putUser(req({ name: "Updated" }), { params: Promise.resolve({ id: "99" }) });
+    expect(res.status).toBe(404);
+  });
+
+  it("500 erro interno", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: "1", role: "ADMIN" } });
+    (sql as unknown as MockedSql).unsafe = jest.fn().mockImplementationOnce(() => Promise.reject(new Error("Erro DB")));
+    const res = await putUser(req({ name: "Updated" }), { params: Promise.resolve({ id: "2" }) });
+    expect(res.status).toBe(500);
+  });
+
   it("200 atualizado com sucesso", async () => {
     (auth as jest.Mock).mockResolvedValueOnce({
       user: { id: "1", role: "ADMIN" },
     });
     (bcrypt.hash as jest.Mock).mockResolvedValueOnce("new_hash");
-    (sql as any).unsafe = jest.fn().mockResolvedValueOnce([
+    (sql as unknown as MockedSql).unsafe = jest.fn().mockResolvedValueOnce([
       {
         id: 1,
         name: "Updated",
@@ -294,6 +314,36 @@ describe("PUT /api/users/[id]", () => {
       req({ name: "Updated", password: "newpass123" }),
       { params: Promise.resolve({ id: "1" }) },
     );
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("DELETE /api/users/[id]", () => {
+  beforeEach(() => { mockSql.mockReset(); jest.clearAllMocks(); });
+
+  it("401 nao autenticado", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce(null);
+    const res = await deleteUser(req(), { params: Promise.resolve({ id: "1" }) });
+    expect(res.status).toBe(401);
+  });
+
+  it("400 nao pode deletar propria conta", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: "1", role: "ADMIN" } });
+    const res = await deleteUser(req(), { params: Promise.resolve({ id: "1" }) }); 
+    expect(res.status).toBe(400);
+  });
+
+  it("403 sem permissao", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: "2", role: "USER" } });
+    mockSql.mockResolvedValueOnce([{ role: "ADMIN" }]);
+    const res = await deleteUser(req(), { params: Promise.resolve({ id: "1" }) });
+    expect(res.status).toBe(403);
+  });
+
+  it("200 deletado com sucesso", async () => {
+    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: "2", role: "ADMIN" } });
+    mockSql.mockResolvedValueOnce([]); 
+    const res = await deleteUser(req(), { params: Promise.resolve({ id: "1" }) });
     expect(res.status).toBe(200);
   });
 });

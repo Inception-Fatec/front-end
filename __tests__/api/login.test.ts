@@ -14,56 +14,105 @@ jest.mock("next/server", () => ({
 }));
 jest.mock("bcryptjs", () => ({ compare: jest.fn() }));
 
-const mockSql = sql as jest.Mock;
+const mockSql = sql as unknown as jest.Mock;
 
 function req(body: unknown) {
   return { json: jest.fn().mockResolvedValue(body) } as unknown as NextRequest;
 }
 
-describe("Post /api/login", () => {
+describe("POST /api/login", () => {
   beforeEach(() => {
     mockSql.mockReset();
     jest.clearAllMocks();
   });
 
-  it("400 se campos faltando", async () => {
-    const res = await POST(req({ email: "t@t.com" }));
+  it("deve retornar 200 e os dados do usuário ao enviar credenciais válidas", async () => {
+    mockSql.mockResolvedValueOnce([
+      {
+        id: 1,
+        name: "Lucas",
+        email: "lucas@fatec.com",
+        role: "admin",
+        status: true,
+        password: "hashed_password",
+      },
+    ]);
+    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+
+    const res = await POST(
+      req({ email: "lucas@fatec.com", password: "senha_correta" }),
+    );
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data).toEqual({
+      id: 1,
+      name: "Lucas",
+      email: "lucas@fatec.com",
+      role: "admin",
+    });
+  });
+
+  it("deve retornar 400 se email ou password estiverem faltando", async () => {
+    const res = await POST(req({ email: "lucas@fatec.com" }));
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe("email e password são obrigatórios.");
   });
 
-  it("403 usuario inativo", async () => {
+  it("deve retornar 401 se o usuário não for encontrado no banco de dados", async () => {
+    mockSql.mockResolvedValueOnce([]);
+
+    const res = await POST(
+      req({ email: "inexistente@fatec.com", password: "senha" }),
+    );
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("Credenciais inválidas.");
+  });
+
+  it("deve retornar 401 se a senha estiver incorreta", async () => {
     mockSql.mockResolvedValueOnce([
-      { id: 1, email: "t@t.com", status: false, password: "hash" },
+      {
+        id: 1,
+        email: "lucas@fatec.com",
+        status: true,
+        password: "hashed_password",
+      },
     ]);
-    const res = await POST(req({ email: "t@t.com", password: "pass123" }));
+    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
+
+    const res = await POST(
+      req({ email: "lucas@fatec.com", password: "senha_errada" }),
+    );
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("Credenciais inválidas.");
+  });
+
+  it("deve retornar 403 se o usuário estiver inativo", async () => {
+    mockSql.mockResolvedValueOnce([
+      {
+        id: 1,
+        email: "lucas@fatec.com",
+        status: false,
+        password: "hashed_password",
+      },
+    ]);
+
+    const res = await POST(
+      req({ email: "lucas@fatec.com", password: "senha_correta" }),
+    );
     expect(res.status).toBe(403);
     expect((await res.json()).error).toBe("Usuário inativo.");
   });
 
-  it("401 senha errada", async () => {
-    mockSql.mockResolvedValueOnce([
-      { id: 1, email: "t@t.com", status: true, password: "hash" },
-    ]);
-    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
-    const res = await POST(req({ email: "t@t.com", password: "wrong" }));
-    expect(res.status).toBe(401);
-  });
+  it("deve retornar 500 se ocorrer um erro interno (ex: falha de conexão com o banco)", async () => {
+    mockSql.mockImplementation(() =>
+      Promise.reject(new Error("Falha na conexão com o banco de dados")),
+    );
 
-  it("200 credenciais corretas", async () => {
-    mockSql.mockResolvedValueOnce([
-      {
-        id: 1,
-        name: "Joao",
-        email: "t@t.com",
-        role: "admin",
-        status: true,
-        password: "hash",
-      },
-    ]);
-    (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
-    const res = await POST(req({ email: "t@t.com", password: "pass123" }));
-    expect(res.status).toBe(200);
-    expect((await res.json()).id).toBe(1);
+    const res = await POST(
+      req({ email: "lucas@fatec.com", password: "senha_correta" }),
+    );
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toBe("Erro interno do servidor.");
   });
 });

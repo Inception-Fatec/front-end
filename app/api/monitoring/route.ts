@@ -10,7 +10,7 @@ export async function GET() {
     return new NextResponse(metrics, {
       headers: { "Content-Type": register.contentType },
     });
-  } catch (_err) {
+  } catch {
     return new NextResponse("Erro ao coletar métricas", { status: 500 });
   }
 }
