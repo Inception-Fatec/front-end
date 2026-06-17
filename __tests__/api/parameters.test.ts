@@ -1,4 +1,5 @@
-import { GET, POST, PUT } from "@/app/api/parameters/route";import { auth } from "@/auth";
+import { GET, POST, PUT } from "@/app/api/parameters/route";
+import { auth } from "@/auth";
 import { NextRequest } from "next/server";
 import sql from "@/lib/db-postgres";
 
@@ -14,7 +15,6 @@ jest.mock("next/server", () => ({
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
 
 const mockSql = sql as jest.Mock;
-
 
 function isFragment(firstArg: unknown): boolean {
   if (!Array.isArray(firstArg)) return false;
@@ -44,10 +44,8 @@ function getReq(params: Record<string, string> = {}) {
   return { url: url.toString() } as unknown as NextRequest;
 }
 
-
 describe("POST /api/parameter-types", () => {
   beforeEach(() => jest.clearAllMocks());
-
 
   it("401 não autenticado", async () => {
     setupSqlMock([]);
@@ -66,7 +64,6 @@ describe("POST /api/parameter-types", () => {
     );
     expect(res.status).toBe(403);
   });
-
 
   it("400 name ausente", async () => {
     setupSqlMock([]);
@@ -133,7 +130,6 @@ describe("POST /api/parameter-types", () => {
     expect(res.status).toBe(400);
   });
 
-
   it("409 tipo de parâmetro com mesmo nome já existe (ativo)", async () => {
     setupSqlMock([[{ id: 5 }]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
@@ -150,12 +146,8 @@ describe("POST /api/parameter-types", () => {
     expect(body.error).toMatch(/j[aá] existe/i);
   });
 
-
   it("400 estação informada não existe no banco", async () => {
-    setupSqlMock([
-      [], 
-      [], 
-    ]);
+    setupSqlMock([[], []]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await POST(
       req({
@@ -170,13 +162,12 @@ describe("POST /api/parameter-types", () => {
     expect(body.error).toMatch(/esta[çc][oõ]es/i);
   });
 
-
   it("201 criado com stationIds", async () => {
     setupSqlMock([
-      [], 
-      [{ id: 1 }, { id: 2 }], 
-      [{ id: 10, name: "Temperatura", unit: "°C", symbol: "T" }], 
-      [], 
+      [],
+      [{ id: 1 }, { id: 2 }],
+      [{ id: 10, name: "Temperatura", unit: "°C", symbol: "T" }],
+      [],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await POST(
@@ -209,7 +200,7 @@ describe("POST /api/parameter-types", () => {
   it("201 combina stationIds e stationId sem duplicatas", async () => {
     setupSqlMock([
       [],
-      [{ id: 1 }, { id: 2 }], 
+      [{ id: 1 }, { id: 2 }],
       [{ id: 12, name: "Pressão", unit: "hPa", symbol: "P" }],
       [],
     ]);
@@ -226,7 +217,6 @@ describe("POST /api/parameter-types", () => {
     expect(res.status).toBe(201);
   });
 
-
   it("500 erro interno no banco", async () => {
     setupSqlMock([new Error("db fail")]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
@@ -237,13 +227,11 @@ describe("POST /api/parameter-types", () => {
   });
 });
 
-
 describe("GET /api/parameter-types", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
-
 
   it("401 não autenticado", async () => {
     setupSqlMock([]);
@@ -251,7 +239,6 @@ describe("GET /api/parameter-types", () => {
     const res = await GET(getReq());
     expect(res.status).toBe(401);
   });
-
 
   it("400 id inválido (não numérico)", async () => {
     setupSqlMock([]);
@@ -263,7 +250,7 @@ describe("GET /api/parameter-types", () => {
   });
 
   it("404 tipo de parâmetro não encontrado por id", async () => {
-    setupSqlMock([[]]); 
+    setupSqlMock([[]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq({ id: "999" }));
     expect(res.status).toBe(404);
@@ -271,8 +258,8 @@ describe("GET /api/parameter-types", () => {
 
   it("200 retorna tipo de parâmetro por id sem estações vinculadas", async () => {
     setupSqlMock([
-      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }], 
-      [], 
+      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }],
+      [],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq({ id: "1" }));
@@ -284,8 +271,11 @@ describe("GET /api/parameter-types", () => {
   it("200 retorna tipo de parâmetro por id com estações", async () => {
     setupSqlMock([
       [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }],
-      [{ id_station: 2 }, { id_station: 5 }], 
-      [{ id: 2, name: "S2" }, { id: 5, name: "S5" }], 
+      [{ id_station: 2 }, { id_station: 5 }],
+      [
+        { id: 2, name: "S2" },
+        { id: 5, name: "S5" },
+      ],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq({ id: "1" }));
@@ -293,7 +283,6 @@ describe("GET /api/parameter-types", () => {
     const body = await res.json();
     expect(body.currentStations).toHaveLength(2);
   });
-
 
   it("400 stationId inválido (não numérico)", async () => {
     setupSqlMock([]);
@@ -305,7 +294,7 @@ describe("GET /api/parameter-types", () => {
   });
 
   it("200 stationId sem parâmetros ativos retorna lista vazia", async () => {
-    setupSqlMock([[]]); 
+    setupSqlMock([[]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq({ stationId: "1" }));
     expect(res.status).toBe(200);
@@ -313,13 +302,12 @@ describe("GET /api/parameter-types", () => {
     expect(body.data).toEqual([]);
   });
 
-
   it("200 listagem padrão sem filtros", async () => {
     setupSqlMock([
-      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }], 
-      [{ count: "1" }], 
-      [{ id_parameter_type: 1, id_station: 2 }], 
-      [{ id: 2, name: "S2" }], 
+      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }],
+      [{ count: "1" }],
+      [{ id_parameter_type: 1, id_station: 2 }],
+      [{ id: 2, name: "S2" }],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq());
@@ -360,10 +348,7 @@ describe("GET /api/parameter-types", () => {
   });
 
   it("200 listagem com data vazia retorna data=[] sem buscar paramLinks", async () => {
-    setupSqlMock([
-      [], 
-      [{ count: "0" }],
-    ]);
+    setupSqlMock([[], [{ count: "0" }]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq());
     expect(res.status).toBe(200);
@@ -373,7 +358,7 @@ describe("GET /api/parameter-types", () => {
 
   it("200 filtro por stationId com parâmetros ativos", async () => {
     setupSqlMock([
-      [{ id_parameter_type: 1 }, { id_parameter_type: 3 }], 
+      [{ id_parameter_type: 1 }, { id_parameter_type: 3 }],
       [
         { id: 1, name: "Temperatura", unit: "°C", symbol: "T" },
         { id: 3, name: "Pressão", unit: "hPa", symbol: "P" },
@@ -390,7 +375,6 @@ describe("GET /api/parameter-types", () => {
     expect(res.status).toBe(200);
   });
 
-
   it("500 erro interno no banco", async () => {
     setupSqlMock([new Error("fail")]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
@@ -399,13 +383,11 @@ describe("GET /api/parameter-types", () => {
   });
 });
 
-
 describe("PUT /api/parameter-types", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
-
 
   it("401 não autenticado", async () => {
     setupSqlMock([]);
@@ -421,7 +403,6 @@ describe("PUT /api/parameter-types", () => {
     expect(res.status).toBe(403);
   });
 
-
   it("400 id ausente", async () => {
     setupSqlMock([]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
@@ -431,29 +412,26 @@ describe("PUT /api/parameter-types", () => {
     expect(body.error).toMatch(/id/i);
   });
 
-
   it("404 tipo de parâmetro não encontrado", async () => {
-    setupSqlMock([[]]); 
+    setupSqlMock([[]]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await PUT(req({ id: 999, name: "X" }));
     expect(res.status).toBe(404);
   });
 
-
   it("200 atualiza campos sem mexer em estações (stationIds undefined)", async () => {
     setupSqlMock([
-      [{ id: 1, name: "Temperatura Nova", unit: "°C", symbol: "T" }], 
+      [{ id: 1, name: "Temperatura Nova", unit: "°C", symbol: "T" }],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await PUT(req({ id: 1, name: "Temperatura Nova" }));
     expect(res.status).toBe(200);
   });
 
-
   it("400 stationIds contém estação inexistente", async () => {
     setupSqlMock([
-      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }], 
-      [], 
+      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }],
+      [],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await PUT(req({ id: 1, stationIds: [999] }));
@@ -462,18 +440,17 @@ describe("PUT /api/parameter-types", () => {
     expect(body.error).toMatch(/esta[çc][oõ]es/i);
   });
 
-
   it("200 atualiza com stationIds — insere novos, habilita inativos, desabilita removidos", async () => {
     setupSqlMock([
-      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }], 
-      [{ id: 2 }, { id: 3 }], 
+      [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }],
+      [{ id: 2 }, { id: 3 }],
       [
         { id: 10, id_station: 2, status: true },
         { id: 11, id_station: 4, status: true },
       ],
-      [], 
-      [], 
-      [], 
+      [],
+      [],
+      [],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await PUT(req({ id: 1, stationIds: [2, 3] }));
@@ -497,8 +474,8 @@ describe("PUT /api/parameter-types", () => {
   it("200 stationId singular — vincula estação única", async () => {
     setupSqlMock([
       [{ id: 2, name: "Umidade", unit: "%", symbol: "U" }],
-      [{ id: 7 }], 
-      [{ id: 20, id_station: 7, status: false }], 
+      [{ id: 7 }],
+      [{ id: 20, id_station: 7, status: false }],
       [],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
@@ -510,13 +487,12 @@ describe("PUT /api/parameter-types", () => {
     setupSqlMock([
       [{ id: 2, name: "Umidade", unit: "%", symbol: "U" }],
       [{ id: 20, id_station: 3, status: true }],
-      [], 
+      [],
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "ADMIN" } });
     const res = await PUT(req({ id: 2, stationId: null }));
     expect(res.status).toBe(200);
   });
-
 
   it("500 erro interno no banco", async () => {
     setupSqlMock([new Error("db fail")]);
