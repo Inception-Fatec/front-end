@@ -31,14 +31,28 @@ const mockSql = sql as unknown as jest.Mock;
 
 // Tipagens exatas criadas para o ESLint não reclamar
 type MockToken = { id?: string; role?: string; first_access?: boolean };
-type MockUser = { id?: string; name?: string; email?: string; role?: string; first_access?: boolean };
+type MockUser = {
+  id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  first_access?: boolean;
+};
 type MockSession = { user: MockUser; first_access?: boolean };
 
 describe("Testes de Regras de Token - NextAuth", () => {
   // CORREÇÃO: Adicionado o "as unknown" antes de declarar nossos tipos exatos
   const callbacks = authConfig.callbacks as unknown as {
-    jwt: (params: { token: MockToken; user?: MockUser; trigger?: string; session?: MockSession }) => Promise<MockToken>;
-    session: (params: { session: MockSession; token: MockToken }) => Promise<MockSession>;
+    jwt: (params: {
+      token: MockToken;
+      user?: MockUser;
+      trigger?: string;
+      session?: MockSession;
+    }) => Promise<MockToken>;
+    session: (params: {
+      session: MockSession;
+      token: MockToken;
+    }) => Promise<MockSession>;
   };
 
   beforeEach(() => {
@@ -60,7 +74,11 @@ describe("Testes de Regras de Token - NextAuth", () => {
     const token = { id: "1", first_access: true };
     const session = { user: {}, first_access: false };
 
-    const tokenAtualizado = await callbacks.jwt({ token, trigger: "update", session });
+    const tokenAtualizado = await callbacks.jwt({
+      token,
+      trigger: "update",
+      session,
+    });
 
     expect(tokenAtualizado.first_access).toBe(false);
   });
@@ -81,7 +99,9 @@ describe("Testes da Função Authorize (Credenciais)", () => {
   // CORREÇÃO: Adicionado o "as unknown" aqui também!
   const authorize = (
     authConfig.providers[0] as unknown as {
-      authorize: (credentials: Record<string, unknown> | null) => Promise<MockUser | null>;
+      authorize: (
+        credentials: Record<string, unknown> | null,
+      ) => Promise<MockUser | null>;
     }
   ).authorize;
 
@@ -97,25 +117,47 @@ describe("Testes da Função Authorize (Credenciais)", () => {
 
   it("deve retornar null se o usuário não for encontrado ou estiver inativo", async () => {
     mockSql.mockResolvedValueOnce([]);
-    expect(await authorize({ email: "teste@fatec.com", password: "123" })).toBeNull();
+    expect(
+      await authorize({ email: "teste@fatec.com", password: "123" }),
+    ).toBeNull();
 
     mockSql.mockResolvedValueOnce([{ status: false }]);
-    expect(await authorize({ email: "teste@fatec.com", password: "123" })).toBeNull();
+    expect(
+      await authorize({ email: "teste@fatec.com", password: "123" }),
+    ).toBeNull();
   });
 
   it("deve retornar null se a senha estiver incorreta", async () => {
-    mockSql.mockResolvedValueOnce([{ id: 1, email: "t@t.com", status: true, password: "hash" }]);
+    mockSql.mockResolvedValueOnce([
+      { id: 1, email: "t@t.com", status: true, password: "hash" },
+    ]);
     (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
-    expect(await authorize({ email: "t@t.com", password: "errada" })).toBeNull();
+    expect(
+      await authorize({ email: "t@t.com", password: "errada" }),
+    ).toBeNull();
   });
 
   it("deve retornar os dados do usuário se estiver tudo correto", async () => {
     mockSql.mockResolvedValueOnce([
-      { id: 1, name: "Teste", email: "t@t.com", role: "USER", status: true, first_access: false, password: "hash" },
+      {
+        id: 1,
+        name: "Teste",
+        email: "t@t.com",
+        role: "USER",
+        status: true,
+        first_access: false,
+        password: "hash",
+      },
     ]);
     (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
     const result = await authorize({ email: "t@t.com", password: "certa" });
-    expect(result).toEqual({ id: "1", name: "Teste", email: "t@t.com", role: "USER", first_access: false });
+    expect(result).toEqual({
+      id: "1",
+      name: "Teste",
+      email: "t@t.com",
+      role: "USER",
+      first_access: false,
+    });
   });
 });
