@@ -188,7 +188,9 @@ describe("/api/alerts", () => {
       },
     ];
     setupSqlMock([data, [{ count: 1 }]]);
-    (auth as jest.Mock).mockResolvedValueOnce({ user: { id: 2, role: "USER" } });
+    (auth as jest.Mock).mockResolvedValueOnce({
+      user: { id: 2, role: "USER" },
+    });
 
     const res = await GET(
       req(undefined, "http://localhost/api/alerts?severity=MODERATE&page=1"),

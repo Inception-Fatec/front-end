@@ -44,7 +44,9 @@ function req(body?: unknown, url = "http://localhost/api/alert-logs") {
 describe("/api/alert-logs", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (auth as jest.Mock).mockResolvedValue({ user: { id: 8, role: "OPERATOR" } });
+    (auth as jest.Mock).mockResolvedValue({
+      user: { id: 8, role: "OPERATOR" },
+    });
   });
 
   it("lista logs criticos nao lidos do usuario", async () => {

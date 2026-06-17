@@ -8,9 +8,10 @@ import { TextDecoder, TextEncoder } from "util";
   TextEncoder;
 (global as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder =
   TextDecoder;
-(global as unknown as { ReadableStream: typeof ReadableStream }).ReadableStream =
-  ReadableStream;
-(global as unknown as { Response: typeof Response }).Response = (class {
+(
+  global as unknown as { ReadableStream: typeof ReadableStream }
+).ReadableStream = ReadableStream;
+(global as unknown as { Response: typeof Response }).Response = class {
   body: ReadableStream;
   headers: Headers;
   status: number;
@@ -20,7 +21,7 @@ import { TextDecoder, TextEncoder } from "util";
     this.headers = new Headers(init?.headers);
     this.status = init?.status ?? 200;
   }
-} as unknown) as typeof Response;
+} as unknown as typeof Response;
 
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
 jest.mock("next/server", () => ({
