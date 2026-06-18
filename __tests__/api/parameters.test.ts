@@ -302,7 +302,10 @@ describe("GET /api/parameter-types", () => {
     setupSqlMock([
       [{ id: 1, name: "Temperatura", unit: "°C", symbol: "T" }],
       [{ id_station: 2 }, { id_station: 5 }], // parameters ativos
-      [{ id: 2, name: "S2" }, { id: 5, name: "S5" }], // stations
+      [
+        { id: 2, name: "S2" },
+        { id: 5, name: "S5" },
+      ], // stations
     ]);
     (auth as jest.Mock).mockResolvedValueOnce({ user: { role: "USER" } });
     const res = await GET(getReq({ id: "1" }));
