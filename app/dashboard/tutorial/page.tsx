@@ -149,13 +149,6 @@ export default function TutorialPage() {
             sistema
           </p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-secondary-text hover:bg-background transition-colors shrink-0 print:hidden"
-          data-no-print
-        >
-          Exportar como PDF
-        </button>
       </div>
 
       <div
