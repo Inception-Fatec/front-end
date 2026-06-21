@@ -84,9 +84,11 @@ export function Header({ onMenuOpen }: HeaderProps) {
         title: alert.parameters?.parameter_types?.name || "Novo alerta",
         station: alert.stations?.name || "",
         message: alert.message,
-        value: `Valor: ${alert.value ?? "--"} ${
-          alert.parameters?.parameter_types?.symbol || ""
-        }`,
+        value: `Valor: ${
+          alert.value != null && !isNaN(Number(alert.value))
+            ? Number(alert.value).toFixed(1)
+            : "--"
+        } ${alert.parameters?.parameter_types?.symbol || ""}`,
       };
 
       setToastAlerts((prev) => {
