@@ -267,9 +267,12 @@ export function ParametersTable({
                       <td className="px-4 py-3 text-secondary-text">
                         {param.linked_stations &&
                         param.linked_stations.length > 0
-                          ? param.linked_stations
+                          ? `${param.linked_stations
+                              .slice(0, 3)
                               .map((station) => station.name)
-                              .join(", ")
+                              .join(
+                                ", ",
+                              )}${param.linked_stations.length > 3 ? " ..." : ""}`
                           : "Sem vínculo"}
                       </td>
                       <td className="px-4 py-3">
