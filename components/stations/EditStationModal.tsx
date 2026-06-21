@@ -37,7 +37,7 @@ export function EditStationModal({
   useEffect(() => {
     async function fetchParameterTypes() {
       try {
-        const res = await fetch("/api/parameter-types?limit=all");
+        const res = await fetch("/api/parameters");
         if (!res.ok) throw new Error();
         const json = await res.json();
         setParameterTypes(json.data ?? []);
