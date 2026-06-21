@@ -149,7 +149,6 @@ export default function TutorialPage() {
             sistema
           </p>
         </div>
-        
       </div>
 
       <div
